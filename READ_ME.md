@@ -16,6 +16,7 @@
 - Function: Save BPM in a storage file
 - Function: Save key in storage file
 - Function: Test all songs in a folder for droptime/BPM/key and test against known values
+- Function: Plotting different kinds of values in same graph with time as x-axis
 
 ### notes
 ```

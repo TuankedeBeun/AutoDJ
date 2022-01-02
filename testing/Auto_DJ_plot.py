@@ -8,99 +8,125 @@ import matplotlib.animation as animation
 import pydub
 from scipy.fftpack import fft
 from scipy.ndimage import gaussian_filter1d as gauss
-import time
 
 os.chdir('C:/Users/tuank/Programming/Python/AutoDJ/testing')
-musicFolderPath = 'C:/Users/tuank/Music/Drum & Bass/Drum & Bass 2'
+musicFolderPath = 'C:/Users/tuank/Music/Drum & Bass/Drum & Bass 2/'
 song = 'Maduk - Avalon (VIP)'
 
 #%% Open & read song
 
-def ReadToAudioSegment(song):
+def read_to_audiosegment(song):
     # reads mp3 file and converts it into pydub's AudioSegment datatype
-    file = song + '.mp3'
+    file = musicFolderPath + song + '.mp3'
     
     audiosegment = pydub.AudioSegment.from_mp3(file)
     return audiosegment
 
-def AudiosegmentToNumpyArray(audiosegment, normalized=False, ):
+def audiosegment_to_nparray(audiosegment, normalized=False):
     audioNp = np.array(audiosegment.get_array_of_samples())
-    if(normalized):
+    audioNp = audioNp.reshape((-1, 2)).transpose()
+    
+    if normalized:
+        audioNp = np.float32(audioNp) / 2**15
         
+    time = np.linspace(0, audiosegment.duration_seconds, audioNp.shape[1])
+    
+    return time, audioNp
+
+def get_properties(audiosegment):
+    props = {
+            'duration': audiosegment.duration_seconds,
+            'audiorate': audiosegment.frame_rate,
+            'max_possible': audiosegment.max_possible_amplitude
+            }
+    return props
 
 #%% Make a spectral analysis (cumulative FFT) of music file
     
-def FFT(signal, audiorate, overlap=0, freq_low=20):
-    #convert audio signal to Fourier by looking at the number of elements
-    #indicated by 'chunksize'
-    #the output is a 2D numpy array of size 'Number of frames x '
+def fft_from_nparray(audioNp, audiorate, freq_low=20):
+    # convert audio signal to Fourier by looking at the number of elements indicated by 'framesize'
+    # outputs a 2D numpy array with time on the 0th axis and fft on the 1st
     
-    chunksize = int(audiorate/freq_low)
-    N = signal.size
-    Nframes = int(N/chunksize)
-    signal_fft = np.zeros((Nframes, int(chunksize/2)))
+    # divide input signal into frames
+    audioMono = np.sum(audioNp, axis=0)
+    framesize = int(audiorate/freq_low)
+    totalSize = audioMono.size
+    Nframes = int(totalSize/framesize)
+    audioReshaped = audioMono[:framesize*Nframes].reshape(Nframes, framesize)
     
-    #!!! maybe possible to do all segments at once (so without for-loop)
-        
-    for i in range(Nframes):
-        segment = signal[chunksize*i:int(chunksize*(i + 1 + overlap))] #!!!
-        segment_fft = fft(segment) #fft
-        segment_fft = segment_fft[:int(chunksize/2)] #discard upper half (mirroring)
-        signal_fft[i] = np.abs(segment_fft) #combine real and imaginary parts
+    # do fft
+    fft_signal = fft(audioReshaped)
+    # discard upper half (mirroring)
+    fft_signal = fft_signal[:, :(int(framesize/2))]
+    # combine real and imaginary parts
+    fft_signal = np.abs(fft_signal)
     
-    ##blurr signal in time
-    #signal_fft = gauss(signal_fft, t_smooth, axis=0)
+    # compute time array
+    secondsPerFrame = framesize/audiorate
+    time = np.arange(0, fft_signal.shape[0])*secondsPerFrame
     
-    #rescale to a scale from about 0 to 255
-    #norm = 0.1*np.average(signal_fft)
-    #signal_256 = np.clip(signal_fft/norm, 0, 255)
+    # compute frequency
+    freq = freq_low*np.arange(fft_signal.shape[1])
     
-    #return np.uint8(signal_256)
-    
-    return signal_fft
+    return time, freq, fft_signal
 
+def calc_bass_mid_treb_from_fft(freq, fft_signal):
+    pass
+
+#%% plot some data over time
+
+class Plotter():
+    def __init__(self, time, data, description):
+        self.Naxes = 0
+        self.tdatasets = [time]
+        self.ydatasets = [data]
+        self.ytitles = [description]
+        self.fig, axis = plt.subplots(1)
+        self.axes = [axis]
+        
+    def add_plot(self, time, data, description):
+        self.Naxes += 1
+        self.axes = self.fig.subplots(nrows=self.Naxes, ncols=1, sharex=True)
+        self.tdatasets.append(time)
+        self.ydatasets.append(data)
+        self.ytitles.append(description)
+        
+    def draw_plots(self, t_range=None):
+        for axis, tdata, ydata, ytitle in zip(self.axes, self.tdatasets, self.ydatasets, self.ytitles):
+            axis.clear()
+            axis.set(ylabel = ytitle)
+            axis.set_title(ytitle)
+            
+            if t_range:
+                index_left = int(np.argwhere(tdata > t_range[0])[0])
+                index_right = int(np.argwhere(tdata > t_range[1])[0])
+                axis.plot(tdata[index_left: index_right],
+                          ydata[index_left: index_right])
+            else:
+                axis.plot(tdata, ydata)
+            
+        axis.set(xlabel='time (s)')
+        self.fig.show()
 
 #%% animation func
+
+class Animation_plotter():
+    def __init__(self, time, xdata, ydata, xlabel, ylabel):
+        self.fig = plt.figure()
+        self.ax = self.fig.add_subplot(1,1,1)
+        self.time = time
+        self.xdata = xdata
+        self.ydata = ydata
+        self.single_plot(0)
+        self.ax.set(xlabel=xlabel, ylabel=ylabel)
+        self.textcoords = (0.9*self.xdata.max(), 0.9*self.ydata.max())
+        
+    def play(self):
+        animation.FuncAnimation(self.fig, self.single_plot, interval=15)
+        plt.show()
     
-def animate(i):
-    ax1.clear()
-    global start, end
-    if i == 0:
-        start = time.time()
-    elif i == 99:
-        end = time.time()
-    elif i > 99:
-        ax1.text(1e4, 4e6, 'function takes %.3f seconds to run' % ((end-start)/100))
-    
-    ax1.text(1.5e4, 5e6, '%.1f s' % (i/fft_rate))
-    ax1.plot(freqs[:1000],fft_temp[i%5500,:1000])
-    plt.ylim(0,6e6)
-    
-
-
-#%% Run
-
-start = end = 0
-    
-audiorate, (left,right) = Read(song)
-fft_temp = FFT(left+right, audiorate)
-Nframes, Nfreq = np.shape(fft_temp)
-fft_rate = Nframes/275
-
-if False:
-    #plot audosignal
-    playtime = np.arange(len(left))/audiorate/60
-    plt.plot(playtime, left+right)
-    plt.ylim(0,6e3)
-
-if True:
-    #plot fft signal
-    #create axes
-    fig = plt.figure()
-    ax1 = fig.add_subplot(1,1,1)
-    freqs = np.arange(Nfreq)*20
-    
-    ani = animation.FuncAnimation(fig, animate, interval=15 )
-    plt.show()
-
-
+    def single_plot(self, i):
+        self.ax.clear()
+        self.ax.text(self.textcoords[0], self.textcoords[1], 'time: %.1f s' % self.time[i])
+        self.ax.plot(self.xdata[i], self.ydata[i])
+        self.ax.set_ylim(0,6e6)
