@@ -10,16 +10,12 @@ from scipy.fftpack import fft
 from scipy.ndimage import gaussian_filter1d as gauss
 
 os.chdir('C:/Users/tuank/Programming/Python/AutoDJ/testing')
-musicFolderPath = 'C:/Users/tuank/Music/Drum & Bass/Drum & Bass 2/'
-song = 'Maduk - Avalon (VIP)'
 
 #%% Open & read song
 
-def read_to_audiosegment(song):
-    # reads mp3 file and converts it into pydub's AudioSegment datatype
-    file = musicFolderPath + song + '.mp3'
-    
-    audiosegment = pydub.AudioSegment.from_mp3(file)
+def read_to_audiosegment(song_path):
+    # reads mp3 file and converts it into pydub's AudioSegment datatype    
+    audiosegment = pydub.AudioSegment.from_mp3(song_path)
     return audiosegment
 
 def audiosegment_to_nparray(audiosegment, normalized=False):
@@ -63,30 +59,36 @@ def fft_from_nparray(audioNp, audiorate, freq_low=20):
     
     # compute time array
     secondsPerFrame = framesize/audiorate
-    time = np.arange(0, fft_signal.shape[0])*secondsPerFrame
+    time = np.arange(1, fft_signal.shape[0]+1)*secondsPerFrame
     
     # compute frequency
     freq = freq_low*np.arange(fft_signal.shape[1])
     
     return time, freq, fft_signal
 
-def calc_bass_mid_treb_from_fft(freq, fft_signal):
-    pass
+def bass_mid_treb_from_fft(freq, fft_signal):
+    bass = np.sum((freq < 300) * fft_signal, axis=1)
+    middle = np.sum((freq >= 300) * (freq < 4000) * fft_signal, axis=1)
+    treble = np.sum((freq >= 4000) * fft_signal, axis=1)
+    return bass, middle, treble
+    
 
 #%% plot some data over time
 
 class Plotter():
-    def __init__(self, time, data, description):
+    def __init__(self, figsize=(18,9)):
         self.Naxes = 0
-        self.tdatasets = [time]
-        self.ydatasets = [data]
-        self.ytitles = [description]
-        self.fig, axis = plt.subplots(1)
-        self.axes = [axis]
+        self.tdatasets = []
+        self.ydatasets = []
+        self.ytitles = []
+        self.fig = plt.figure(figsize=figsize, 
+                              facecolor='#333333',
+                              clear=True)
         
     def add_plot(self, time, data, description):
         self.Naxes += 1
-        self.axes = self.fig.subplots(nrows=self.Naxes, ncols=1, sharex=True)
+        self.axes = []
+        self.axes.append(self.fig.subplots(nrows=self.Naxes, ncols=1, sharex=True))
         self.tdatasets.append(time)
         self.ydatasets.append(data)
         self.ytitles.append(description)
@@ -94,18 +96,21 @@ class Plotter():
     def draw_plots(self, t_range=None):
         for axis, tdata, ydata, ytitle in zip(self.axes, self.tdatasets, self.ydatasets, self.ytitles):
             axis.clear()
-            axis.set(ylabel = ytitle)
-            axis.set_title(ytitle)
+            axis.set_ylabel(ytitle, fontsize=20, color='w')
+            axis.set_facecolor('#111111')
+            axis.tick_params(axis='both', colors='w', labelsize=15)
+            for spine in axis.spines: axis.spines[spine].set_color('w')
             
             if t_range:
                 index_left = int(np.argwhere(tdata > t_range[0])[0])
                 index_right = int(np.argwhere(tdata > t_range[1])[0])
                 axis.plot(tdata[index_left: index_right],
-                          ydata[index_left: index_right])
+                          ydata[index_left: index_right],
+                          linewidth=2)
             else:
                 axis.plot(tdata, ydata)
             
-        axis.set(xlabel='time (s)')
+        axis.set_xlabel('time (s)', fontsize=20, color='w')
         self.fig.show()
 
 #%% animation func
