@@ -34,7 +34,9 @@ class AudioReader():
     
     def load_song(self, song):
         # reads mp3 file and converts it into pydub's AudioSegment datatype
-        song_path = self.directory + self.song + '.mp3'
+        song_path = self.directory + self.song
+        if(not song_path.endswith('.mp3')):
+            song_path += '.mp3'
         audiosegment = pydub.AudioSegment.from_mp3(song_path)
         return audiosegment
     
@@ -42,7 +44,7 @@ class AudioReader():
         # convert audio signal to Fourier by looking at the number of elements indicated by 'framesize'
         # outputs a 2D numpy array with time on the 0th axis and fft on the 1st
         
-        time, audio_np = self.to_nparray(self.audiosegment)
+        time, audio_np = to_nparray(self.audiosegment)
         
         # divide input signal into frames
         audioMono = np.sum(audio_np, axis=0)

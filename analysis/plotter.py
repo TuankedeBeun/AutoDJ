@@ -3,12 +3,13 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 class Plotter():
-    def __init__(self, figsize=(18,9)):
+    def __init__(self, title, figsize=(18,9)):
         self.Naxes = 0
         self.tdatasets = []
         self.ydatasets = []
         self.ytitles = []
-        self.fig = plt.figure(figsize=figsize, 
+        self.fig = plt.figure(title,
+                              figsize=figsize, 
                               facecolor='#333333',
                               clear=True)
         
@@ -37,7 +38,7 @@ class Plotter():
                 index_right = int(np.argwhere(tdata > t_range[1])[0])
                 axis.plot(tdata[index_left: index_right],
                           ydata[index_left: index_right],
-                          linewidth=2)
+                          linewidth=.5)
             else:
                 axis.plot(tdata, ydata)
             
