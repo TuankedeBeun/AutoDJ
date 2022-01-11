@@ -32,14 +32,10 @@ def analyse_song(folder, song, plot=True):
     song_analyser = analyser.AudioAnalyser(folder, song_file)
     properties = song_analyser.get_properties()
     
-    tones = ['A','Bb','B','C','C#','D','Eb','E','F','F#','G','G#']
-
     for prop in properties.keys():
         value = properties[prop]
-        if prop == 'key':
-            value = tones[value]
         print('%15s: %s' % (prop, value))
         
-#    song_analyser.plotter.draw_plots()
+    song_analyser.plotter.draw_plots()
     
     return properties

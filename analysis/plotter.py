@@ -3,8 +3,9 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
 class Plotter():
-    def __init__(self, title, figsize=(18,9)):
+    def __init__(self, title, figsize=(18,9), sharex=True):
         self.Naxes = 0
+        self.sharex = sharex
         self.tdatasets = []
         self.ydatasets = []
         self.ytitles = []
@@ -17,9 +18,9 @@ class Plotter():
         self.fig.clear()
         self.Naxes += 1
         if(self.Naxes == 1):
-            self.axes = [self.fig.subplots(nrows=1, ncols=1, sharex=True)]
+            self.axes = [self.fig.subplots(nrows=1, ncols=1)]
         else:
-            self.axes = self.fig.subplots(nrows=self.Naxes, ncols=1, sharex=True)
+            self.axes = self.fig.subplots(nrows=self.Naxes, ncols=1, sharex=self.sharex)
         
         self.tdatasets.append(time)
         self.ydatasets.append(data)

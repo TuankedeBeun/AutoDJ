@@ -34,14 +34,17 @@ def power_history(signal, audiorate, clustertime, resolution=None):
     power_hist = np.sum(unsummed, axis=1)
     power_hist = np.ravel(power_hist)
     
-    time = clustertime*np.arange(power_hist.size)
+    if resolution:
+        time = resolution*np.arange(power_hist.size)
+    else:
+        time = clustertime*np.arange(power_hist.size)
     
     return time, power_hist
 
 class AudioAnalyser():
     def __init__(self, song_directory, song_title):
         self.reader = audioreader.AudioReader(song_directory, song_title)
-        self.plotter = plotter.Plotter(song_title, figsize=(24,12))
+        self.plotter = plotter.Plotter(song_title, figsize=(24,12), sharex=False)
         
     def get_properties(self):
         drop_start_estimate, drop_end_estimate = self.estimate_droptime()
@@ -51,13 +54,13 @@ class AudioAnalyser():
         drop_end = self.get_dropend(drop_start, drop_end_estimate, bpm)
         song_start = self.get_songstart(drop_start, bpm)
         key_number, is_major, method = self.find_key(drop_start, bpm)
-        properties = {'bpm': bpm,
-                      'bpm_reliable': bpm_reliable,
-                      'drop_start': drop_start,
-                      'drop_end': drop_end,
-                      'song_start': song_start,
-                      'key': key_number,
-                      'is_major': is_major
+        tones = ['A','Bb','B','C','C#','D','Eb','E','F','F#','G','G#']
+        note = tones[key_number]
+        properties = {'bpm': {'value': bpm, 'reliable': bpm_reliable},
+                      'drop_start': {'value': drop_start, 'estimate': drop_start_estimate, 'reliable': drop_start_reliable},
+                      'drop_end': {'value': drop_end, 'estimate': drop_end_estimate},
+                      'song_start': {'value': song_start},
+                      'key': {'note': note, 'key_number': key_number, 'is_major': is_major, 'method': method}
                       }
         return properties
         
@@ -97,7 +100,7 @@ class AudioAnalyser():
         drop_start = drop_start*resolution
         drop_stop = drop_end*resolution
         
-        self.plotter.add_plot(time_ph, power_hist, 'Global power history')
+        self.plotter.add_plot(time_ph, power_hist, 'Global\npower history')
         
         return drop_start, drop_stop
 
@@ -116,7 +119,7 @@ class AudioAnalyser():
         
         # calculate resonance of BPM
         resonance_BPMs = np.arange(165, 178)
-        resonance_vals = np.zeros_like(resonance_BPMs, dtype=np.float16)
+        resonance_vals = np.zeros_like(resonance_BPMs, dtype=np.float64)
         PHs = []
         
         for i, BPM_try in enumerate(resonance_BPMs):
@@ -165,7 +168,7 @@ class AudioAnalyser():
         beat_time = drop_snare + dt
         
         t_scan = np.linspace(resonance_BPMs[0], resonance_BPMs[-1], PH.size)
-        self.plotter.add_plot(t_scan, PH, 'BPM finder')
+        self.plotter.add_plot(resonance_BPMs, resonance_vals, 'BPM\nresonance')
         
         return BPM, BPM_reliable, beat_time, beat_reliable
     
@@ -183,7 +186,7 @@ class AudioAnalyser():
         t, bass_np = audioreader.to_nparray(audiosegment_bass)
         
         # calculate power history per half bar
-        t, powerhistory_bass = power_history(bass_np, audiorate, 2*dt)
+        time_bass, powerhistory_bass = power_history(bass_np, audiorate, 2*dt)
         
         # in case the number of frames is not right
         if powerhistory_bass.size > 2*Nbars:
@@ -207,8 +210,8 @@ class AudioAnalyser():
         if np.sum(criterium > 0.85*criterium.max()) > 1:
             drop_reliable = False
             
-        time_bass = np.linspace(start, end, powerhistory_bass.size + 1)
-        self.plotter.add_plot(time_bass, powerhistory_bass, 'Beat/bar/drop detection')
+        #!!! plotting criterium
+        self.plotter.add_plot(time_bass + start, powerhistory_bass, 'bass')
 
         return t_drop_start, drop_reliable
 
@@ -315,7 +318,7 @@ class AudioAnalyser():
         minor_val = np.sum(np.roll(minor_chord, key_number-3)*dft_summed)
         major = (major_val > minor_val)
         
-        tone_spectrum = np.vstack((dft_stack, dft_summed))
-        self.plotter.add_plot(tones, tone_spectrum, 'Tone spectrum')
+        tone_spectrum = np.transpose( np.vstack((dft_stack, dft_summed)) )
+        self.plotter.add_plot(tones, tone_spectrum, 'Tone\nspectrum')
         
         return key_number, major, method
