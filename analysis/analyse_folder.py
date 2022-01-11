@@ -1,37 +1,27 @@
 import os
+import csv
 import numpy as np
 import audio_analyser_class as analyser
-
+from time import strftime, localtime
 
 def Data(folder):
-    #compute BPM, key and dropstart/end of each song in the folder
-    os.chdir(folder)
-    songs = os.listdir()
+    # initialize dictionary csv writer
+    last_folder = os.path.split(folder)[-1]
+    csv_file_name = 'analysis_' + last_folder + strftime("%d%b%YT%H:%M", localtime())
+    song_properties = ['bpm', 'bpm_reliable','drop_start', 'drop_end', 'song_start', 'key', 'modus']
+    file = open('data/' + csv_file_name)
+    writer = csv.DictWriter(file, fieldnames=song_properties)
+    writer.writeheader()
     
-    #check if there already is a music data file
-    if 'Music_data.npy' in songs:
-        print('Folder already has a music data file')
-        overwrite = input('Do you wish to delete it?\n(yes/no)\t')
-        if overwrite == 'yes':
-            os.remove('Music_data.npy')
-            songs.remove('Music_data.npy')
-        else:
-            return
-    
-    Nsongs = len(songs)
-    data = np.zeros((Nsongs, 7)) #[framerate, BPM, dropstart, dropend, key]
-    #loop for every song
-    for i, song in enumerate(songs):
+    # extract song properties for every song in the given folder
+    songs = os.listdir(folder)
+    for song in songs:
         song_analyser = analyser.AudioAnalyser(folder, song)
         properties = song_analyser.get_properties()
+        writer.writerow(properties)
         
-        #fill data array
-        print(properties)
-        ### TODO: something with csv saving
-    
-    np.save('Music_data.npy', data)
+    file.close()
     return
-
 
 def check(folder, song_nr, plot=True):
     os.chdir(folder)
