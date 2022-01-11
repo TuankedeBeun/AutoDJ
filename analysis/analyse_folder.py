@@ -1,10 +1,9 @@
 import os
 import csv
-import numpy as np
 import audio_analyser_class as analyser
 from time import strftime, localtime
 
-def Data(folder):
+def analyse_folder(folder):
     # initialize dictionary csv writer
     last_folder = os.path.split(folder)[-1]
     csv_file_name = 'analysis_' + last_folder + strftime("%d%b%YT%H:%M", localtime())
@@ -23,41 +22,24 @@ def Data(folder):
     file.close()
     return
 
-def check(folder, song_nr, plot=True):
-    os.chdir(folder)
-    songs = os.listdir()
-    if 'Music_data.npy' in songs:
-        songs.remove('Music_data.npy')
-    song = songs[song_nr]
+def analyse_song(folder, song, plot=True):
+    if type(song) == int:
+        songlist = os.listdir(folder)
+        song_file = songlist[song]
+    else:
+        song_file = song + '.mp3'
     
-    #read song
-    song, signal, signal_AS, audiorate = Read(song)
-    print('\nMusic data: of %s\n' %song[:-4] + '-'*60)
-    print('framerate =\t', audiorate)
+    song_analyser = analyser.AudioAnalyser(folder, song_file)
+    properties = song_analyser.get_properties()
     
-    # find bpm
-    props = Find_BPM(signal_AS, signal, audiorate, song, plot=plot)
-    BPM, drop_start0, drop_end0, drop_beat, BPM_reliable, beat_reliable = props
-    print('BPM =\t\t', BPM)
-    print('drop start  ~\t', drop_start0)
-    print('drop end  ~\t', drop_end0)
+    tones = ['A','Bb','B','C','C#','D','Eb','E','F','F#','G','G#']
+
+    for prop in properties.keys():
+        value = properties[prop]
+        if prop == 'key':
+            value = tones[value]
+        print('%15s: %s' % (prop, value))
+        
+#    song_analyser.plotter.draw_plots()
     
-    # find exact timestamps of start and end of drop
-    drop_start, drop_reliable = Droptime_exact(signal_AS, drop_beat, BPM, plot=plot)
-    print('drop start =\t', drop_start)
-    
-    # find songstart and dropend
-    drop_end, song_start = dropend_and_songstart(drop_start, drop_end0, BPM, plot=plot)
-    print('drop end =\t', drop_end)
-    print('song start =\t', song_start)
-    
-    # find key
-    key, major, scale = Key(signal, audiorate, drop_start, BPM, bars=2, plot=plot)
-    print('key =\t\t', key)
-    
-    # reliability
-    reliable = BPM_reliable and beat_reliable and drop_reliable
-    if not reliable:
-        print('\nUNRELIABLE')
-    
-    return audiorate, BPM, song_start, drop_start, drop_end, key
+    return properties

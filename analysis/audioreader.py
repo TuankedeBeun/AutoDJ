@@ -20,7 +20,7 @@ def segment_section(audiosegment, start, end):
 def audio_np_section(audiosegment, start, end):
     #return slice of audiosignal indicated by start and end in seconds
     audiosegment_section = segment_section(audiosegment, start, end)
-    audio_np_section = to_nparray(audiosegment_section)
+    t, audio_np_section = to_nparray(audiosegment_section)
     return audio_np_section
 
 class AudioReader():

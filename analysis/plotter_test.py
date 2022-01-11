@@ -5,7 +5,7 @@ import numpy as np
 
 musicFolderPath = 'C:/Users/tuank/Music/Drum & Bass/Drum & Bass 4'
 songlist = os.listdir(musicFolderPath)
-song = 'NCT - Move On.mp3'
+song = songlist[3]
 
 my_reader = audioreader.AudioReader(musicFolderPath, song)
 
