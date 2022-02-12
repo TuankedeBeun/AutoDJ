@@ -36,6 +36,6 @@ def analyse_song(folder, song, plot=True):
         value = properties[prop]
         print('%15s: %s' % (prop, value))
         
-    song_analyser.plotter.draw_plots()
+    song_analyser.plotter.draw_axes()
     
     return properties
