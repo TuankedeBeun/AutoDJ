@@ -2,6 +2,7 @@ import os
 import csv
 import audio_analyser_class as analyser
 from time import strftime, localtime
+from song_player import play_song
 
 def analyse_folder(folder):
     # initialize dictionary csv writer
@@ -22,7 +23,7 @@ def analyse_folder(folder):
     file.close()
     return
 
-def analyse_song(folder, song, plot=True):
+def analyse_song(folder, song, plot=True, play_drop=False):
     if type(song) == int:
         songlist = os.listdir(folder)
         song_file = songlist[song]
@@ -36,6 +37,11 @@ def analyse_song(folder, song, plot=True):
         value = properties[prop]
         print('%15s: %s' % (prop, value))
         
-    song_analyser.plotter.draw_axes()
+    if plot: song_analyser.plotter.draw_axes()
+    
+    if play_drop: 
+        start = properties['drop_start']['value'] - 4*60/(properties['bpm']['value'])
+        end = start + 8*60/(properties['bpm']['value'])
+        play_song(folder, song_analyser.reader.audiosegment, start=start, end=end)
     
     return properties
