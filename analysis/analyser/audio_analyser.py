@@ -1,9 +1,6 @@
-import plotter
-import audioreader
-import os
+from helper.plotter import Plotter
+from helper.audioreader import AudioReader, to_nparray, audio_np_section
 import numpy as np
-import matplotlib.pyplot as plt
-import pydub
 from pydub.effects import low_pass_filter, high_pass_filter
 from scipy.signal import find_peaks, gaussian
 
@@ -43,8 +40,8 @@ def power_history(signal, audiorate, clustertime, resolution=None):
 
 class AudioAnalyser():
     def __init__(self, song_directory, song_title):
-        self.reader = audioreader.AudioReader(song_directory, song_title)
-        self.plotter = plotter.Plotter(song_title, figsize=(16,9), sharex=False)
+        self.reader = AudioReader(song_directory, song_title)
+        self.plotter = Plotter(song_title, figsize=(16,9), sharex=False)
         
     def get_properties(self):
         drop_start_estimate, drop_end_estimate = self.estimate_droptime()
@@ -66,7 +63,7 @@ class AudioAnalyser():
         
     def estimate_droptime(self, minimal_droplength=30, clustertime=8, resolution=1):
         # clustertime is the length of a power history block in seconds
-        t, audio_np = audioreader.to_nparray(self.reader.audiosegment)
+        t, audio_np = to_nparray(self.reader.audiosegment)
         audiorate = self.reader.audiosegment.frame_rate
         time_ph, power_hist = power_history(audio_np, audiorate, clustertime, resolution)
         
@@ -120,7 +117,7 @@ class AudioAnalyser():
         start_scan = int(1000*(scanning_point))
         end_scan = int(1000*(scanning_point + Nbars*4*60/160))
         segment_scan = self.reader.audiosegment[start_scan:end_scan].high_pass_filter(hpf)
-        t, array_scan = audioreader.to_nparray(segment_scan)
+        t, array_scan = to_nparray(segment_scan)
         t, powerhistory_scan = power_history(array_scan, audiorate, clustertime, resolution)
         
         # calculate resonance of BPM
@@ -165,7 +162,7 @@ class AudioAnalyser():
             start_snare = int(1000*(drop_snare - dt/4))
             end_snare = int(1000*(drop_snare + dt/4))
             segment_snare = self.reader.audiosegment[start_snare:end_snare].high_pass_filter(hpf)
-            t, array_snare = audioreader.to_nparray(segment_snare)
+            t, array_snare = to_nparray(segment_snare)
             t, PH_snare = power_history(array_snare, audiorate, clustertime, resolution)
             snare_hit = PH_snare.max() > 0.6*PH_max
             if not snare_hit:
@@ -191,7 +188,7 @@ class AudioAnalyser():
         start = max([drop_beat - round(1/2*Nbars)*4*dt, drop_beat % dt])
         end = start + Nbars*4*dt
         audiosegment_bass = self.reader.audiosegment[1000*start: 1000*end].low_pass_filter(200)
-        t, bass_np = audioreader.to_nparray(audiosegment_bass)
+        t, bass_np = to_nparray(audiosegment_bass)
         
         # calculate power history per half bar
         time_bass, powerhistory_bass = power_history(bass_np, audiorate, 2*dt)
@@ -274,7 +271,7 @@ class AudioAnalyser():
         # extract snippet of drop region
         sample_length = 8*bars*60/bpm
         end = start + sample_length #take exactly one phrase worth of music 
-        phrase = audioreader.audio_np_section(self.reader.audiosegment, start, end)
+        phrase = audio_np_section(self.reader.audiosegment, start, end)
         phrase = np.sum(phrase, axis=0)
         
         tones = ['A','Bb','B','C','C#','D','Eb','E','F','F#','G','G#']

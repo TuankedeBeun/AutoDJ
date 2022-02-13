@@ -1,7 +1,6 @@
 import os
 import plotter
 import audioreader
-import numpy as np
 
 musicFolderPath = 'C:/Users/tuank/Music/Drum & Bass/Drum & Bass 4'
 songlist = os.listdir(musicFolderPath)

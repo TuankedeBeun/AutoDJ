@@ -1,6 +1,6 @@
 import os
 import csv
-import audio_analyser_class as analyser
+from audio_analyser import AudioAnalyser
 from time import strftime, localtime
 from song_player import play_song
 
@@ -16,7 +16,7 @@ def analyse_folder(folder):
     # extract song properties for every song in the given folder
     songs = os.listdir(folder)
     for song in songs:
-        song_analyser = analyser.AudioAnalyser(folder, song)
+        song_analyser = AudioAnalyser(folder, song)
         properties = song_analyser.get_properties()
         writer.writerow(properties)
         
@@ -30,7 +30,7 @@ def analyse_song(folder, song, plot=True, play_drop=False):
     else:
         song_file = song + '.mp3'
     
-    song_analyser = analyser.AudioAnalyser(folder, song_file)
+    song_analyser = AudioAnalyser(folder, song_file)
     properties = song_analyser.get_properties()
     
     for prop in properties.keys():
