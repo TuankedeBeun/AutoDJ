@@ -2,7 +2,7 @@ import os
 import csv
 from audio_analyser import AudioAnalyser
 from time import strftime, localtime
-from song_player import play_song
+from songplayer import play_song
 
 def analyse_folder(folder):
     # initialize dictionary csv writer
