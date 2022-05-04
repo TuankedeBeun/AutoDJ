@@ -1,5 +1,6 @@
 import os
 import tkinter as tk
+from turtle import bgcolor
 import matplotlib.pyplot as plt
 from PIL import Image, ImageTk
 
@@ -35,6 +36,9 @@ class PropertySetter(tk.Tk):
     def __init__(self):
         super().__init__()
         self.create_GUI()
+
+        self.song_nr = 0
+
         
     def create_GUI(self, width=1600, height=900):
         # packing manager: grid
@@ -53,14 +57,17 @@ class PropertySetter(tk.Tk):
         
         # song title
         txt_songtitle = tk.Label(text = 'Artist - Song title', bg=colors['bg'], font=('cambria', 50))
-        txt_songtitle.grid(row=0, columnspan=4)
+        txt_songtitle.grid(row=0, columnspan=6)
         
+        def resize_image(file_path, factor):
+            img = Image.open(file_path)
+            img_resized = img.resize((round(img.size[0]*factor), round(img.size[1]*factor)))
+            img_tk = ImageTk.PhotoImage(image=img_resized)
+            return img_tk
+
         # graph
-        img_graph = Image.open('./images/dummy_graph.png')
-        resize_factor = 0.5
-        img_graph = img_graph.resize((round(img_graph.size[0]*resize_factor), round(img_graph.size[1]*resize_factor)))
-        tkImage = ImageTk.PhotoImage(image=img_graph)
-        tk.Label(self, bg=colors['bg'], image=tkImage).grid(row=1, columnspan=5)
+        img_graph = resize_image('./images/dummy_graph.png', 0.5)
+        tk.Label(self, bg=colors['bg'], image=img_graph).grid(row=1, columnspan=5)
 
         # info text
         text = '''
@@ -71,40 +78,80 @@ class PropertySetter(tk.Tk):
 
         # folder
         img_folder = tk.PhotoImage(file='./images/folder_icon.png')
-        tk.Button(self, bg=colors['bg'], bd=0, image=img_folder).grid(row=2, column=0)
+        tk.Button(self, command=self.open_folder, bg=colors['bg'], bd=0, image=img_folder).grid(row=2, column=0)
 
         # saving button
         img_file = tk.PhotoImage(file='./images/file_icon.png')
-        tk.Button(self, bg=colors['bg'], bd=0, image=img_file).grid(row=2, column=1)
+        tk.Button(self, command=self.save_song, bg=colors['bg'], bd=0, image=img_file).grid(row=2, column=1)
 
         # set buttons
-        tk.Button(self, text='Set drop start', bg=colors['button']).grid(row=2, column=2)
-        tk.Button(self, text='Set drop end', bg=colors['button']).grid(row=2, column=3)
+        tk.Button(self, command=self.set_drop_start, text='Set drop start', bg=colors['button'], font=('cambria', 15), width=15).grid(row=2, column=2)
+        tk.Button(self, command=self.set_drop_end, text='Set drop end', bg=colors['button'], font=('cambria', 15), width=15).grid(row=2, column=3)
         tk.OptionMenu(self, 'Set key', 'A','B','C').grid(row=2, column=4)
 
         # set piano
         img_piano = tk.PhotoImage(file='./images/piano_icon.png')
-        tk.Button(self, bg=colors['bg'], bd=0, image=img_piano).grid(row=2, column=6)
+        tk.Button(self, command=self.open_piano, bg=colors['bg'], bd=0, image=img_piano).grid(row=2, column=6)
 
         # previous / play / pause / restart / next buttons
-        img_previous = tk.PhotoImage(file='./images/previous_icon.png')
-        tk.Button(self, bg=colors['bg'], bd=0, image=img_previous).grid(row=3, column=0, columnspan=2)
+        resize_factor = 0.5
 
-        img_play = tk.PhotoImage(file='./images/play_icon.png')
-        tk.Button(self, bg=colors['bg'], bd=0, image=img_play).grid(row=3, column=2)
+        img_previous = resize_image('./images/previous_icon.png', resize_factor)
+        tk.Button(self, command=self.previous_song, bg=colors['bg'], bd=0, image=img_previous).grid(row=3, column=0, columnspan=2)
 
-        img_pause = tk.PhotoImage(file='./images/pause_icon.png')
-        tk.Button(self, bg=colors['bg'], bd=0, image=img_pause).grid(row=3, column=3)
+        img_play = resize_image('./images/play_icon.png', resize_factor)
+        tk.Button(self, command=self.play, bg=colors['bg'], bd=0, image=img_play).grid(row=3, column=2)
 
-        img_restart = tk.PhotoImage(file='./images/restart_icon.png')
-        tk.Button(self, bg=colors['bg'], bd=0, image=img_restart).grid(row=3, column=4)
+        img_pause = resize_image('./images/pause_icon.png', resize_factor)
+        tk.Button(self, command=self.pause, bg=colors['bg'], bd=0, image=img_pause).grid(row=3, column=3)
+
+        img_restart = resize_image('./images/restart_icon.png', resize_factor)
+        tk.Button(self, command=self.restart, bg=colors['bg'], bd=0, image=img_restart).grid(row=3, column=4)
         
-        img_next = tk.PhotoImage(file='./images/next_icon.png')
-        tk.Button(self, bg=colors['bg'], bd=0, image=img_next).grid(row=3, column=5, columnspan=2)
+        img_next = resize_image('./images/next_icon.png', resize_factor)
+        tk.Button(self, command=self.next_song, bg=colors['bg'], bd=0, image=img_next).grid(row=3, column=5, columnspan=2)
 
         self.mainloop()
         
         return
 
+    def open_folder(self, event):
+        pass
+
+    def save_song(self, event):
+        pass
+
+    def open_song(i):
+        pass
+
+    def set_drop_start(self, event):
+        pass
+
+    def set_drop_end(self, event):
+        pass
+
+    def set_key(self, event):
+        pass
+
+    def open_piano(self, event):
+        pass
+
+    def previous_song(self, event):
+        pass
+
+    def next_song(self, event):
+        pass
+
+    def play(self, event):
+        pass
+
+    def pause(self, event):
+        pass
+
+    def restart(self, event):
+        pass
+
+    def select_region(self, event):
+        pass
 
 tester = PropertySetter()
