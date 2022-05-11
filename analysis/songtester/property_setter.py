@@ -3,6 +3,7 @@ import csv
 import tkinter as tk
 import numpy as np
 from time import localtime
+import pydub
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
@@ -43,6 +44,7 @@ class PropertySetter(tk.Tk):
         self.song_nr = 0
         self.song_paths = []
         self.song_pdb = None
+        self.music_folder = None
         self.current_song = {
             'song_path' : None,
             'drop_start' : None,
@@ -66,7 +68,7 @@ class PropertySetter(tk.Tk):
         self.geometry("{width}x{height}".format(width = width, height = height))
         self.resizable(False, False)
         self.title('Song analyser')
-        self.rowconfigure(1, weight=2)
+        self.rowconfigure(1, weight=4)
         self.configure(background=colors['bg'])
         
         # song title
@@ -74,7 +76,7 @@ class PropertySetter(tk.Tk):
         self.songtitle.grid(row=0, columnspan=7)
 
         # load figure for audio signal
-        fig = Figure(figsize=(8, 3), dpi=100)
+        fig = Figure(figsize=(8, 2.5), dpi=100)
         t = np.arange(0, 3, .01)
         self.axis = fig.add_subplot(111)
         self.axis.plot(t, 2 * np.sin(2 * np.pi * t))
@@ -83,17 +85,18 @@ class PropertySetter(tk.Tk):
         figure_frame.grid(row=1, columnspan=4)
         canvas = FigureCanvasTkAgg(fig, master=figure_frame)  # A tk.DrawingArea.
         canvas.draw()
-        canvas.get_tk_widget().grid(row=1, columnspan=4)#.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
         # create toolbar
-        # toolbar = NavigationToolbar2Tk(canvas, self)
-        # toolbar.update()
-        # canvas.get_tk_widget().grid(row=1, columnspan=4)#.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        toolbar = NavigationToolbar2Tk(canvas, figure_frame)
+        toolbar.update()
+        canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
         def on_key_press(event):
             print("you pressed {}".format(event.key))
             key_press_handler(event, canvas, toolbar)
 
         canvas.mpl_connect("key_press_event", on_key_press)
+        self.canvas = canvas
 
         # info text
         text = '''
@@ -158,8 +161,8 @@ class PropertySetter(tk.Tk):
 
     def open_folder(self):
         # load songs in chosen directory
-        music_folder = tk.filedialog.askdirectory(initialdir=self.default_music_directory)
-        songs = os.listdir(music_folder)
+        self.music_folder = tk.filedialog.askdirectory(initialdir=self.default_music_directory)
+        songs = os.listdir(self.music_folder)
 
         # only keep mp3 songs
         for song in songs:
@@ -173,6 +176,18 @@ class PropertySetter(tk.Tk):
     def load_song(self):
         self.current_song['song_path'] = self.song_paths[self.song_nr]
         self.songtitle.config(text = self.current_song['song_path'][:-4])
+        
+        # reads mp3 file and converts it into pydub's AudioSegment datatype
+        song_path = self.music_folder + '/' + self.current_song['song_path']
+        audiosegment = pydub.AudioSegment.from_mp3(song_path)
+
+        audio_np = np.array(audiosegment.get_array_of_samples())
+        audio_np = audio_np.reshape((-1, 2)).sum(axis=1)
+        
+        time = np.linspace(0, audiosegment.duration_seconds, audio_np.size)
+        self.axis.clear()
+        self.axis.plot(time, audio_np)
+        self.canvas.draw()
 
     def save_song(self):
         #TODO: implement check if song is already saved --> overwrite
