@@ -1,9 +1,11 @@
 import os
 import csv
 import tkinter as tk
-import matplotlib.pyplot as plt
-from PIL import Image, ImageTk
+import numpy as np
 from time import localtime
+from matplotlib.backend_bases import key_press_handler
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.figure import Figure
 
 '''
 Classes for setting song properties by listening and manually asserting data
@@ -55,7 +57,7 @@ class PropertySetter(tk.Tk):
     def create_GUI(self, width=1200, height=600):
         # colors
         colors = {
-            'bg': '#B4C7E7',
+            'bg': '#D2CEC0',
             'button': '#FFC000',
             'blue': '#4472C4'
         }
@@ -70,23 +72,35 @@ class PropertySetter(tk.Tk):
         # song title
         self.songtitle = tk.Label(text = 'Artist - Song title', bg=colors['bg'], font=('cambria', 40), wraplength=width-100)
         self.songtitle.grid(row=0, columnspan=7)
-        
-        def resize_image(file_path, factor):
-            img = Image.open(file_path)
-            img_resized = img.resize((round(img.size[0]*factor), round(img.size[1]*factor)))
-            img_tk = ImageTk.PhotoImage(image=img_resized)
-            return img_tk
 
-        # graph
-        img_graph = resize_image('./images/dummy_graph.png', 0.5)
-        tk.Label(self, bg=colors['bg'], image=img_graph).grid(row=1, columnspan=5)
+        # load figure for audio signal
+        fig = Figure(figsize=(8, 3), dpi=100)
+        t = np.arange(0, 3, .01)
+        self.axis = fig.add_subplot(111)
+        self.axis.plot(t, 2 * np.sin(2 * np.pi * t))
+        # create canvas for figure
+        figure_frame = tk.Frame(master=self)
+        figure_frame.grid(row=1, columnspan=4)
+        canvas = FigureCanvasTkAgg(fig, master=figure_frame)  # A tk.DrawingArea.
+        canvas.draw()
+        canvas.get_tk_widget().grid(row=1, columnspan=4)#.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+        # create toolbar
+        # toolbar = NavigationToolbar2Tk(canvas, self)
+        # toolbar.update()
+        # canvas.get_tk_widget().grid(row=1, columnspan=4)#.pack(side=tk.TOP, fill=tk.BOTH, expand=1)
+
+        def on_key_press(event):
+            print("you pressed {}".format(event.key))
+            key_press_handler(event, canvas, toolbar)
+
+        canvas.mpl_connect("key_press_event", on_key_press)
 
         # info text
         text = '''
         Drop start:\t00:00:00
         Drop end:\t00:00:00
         Key:\t\t-'''
-        tk.Label(self, text=text, font=('cambria', 20), bg=colors['bg'], justify=tk.LEFT).grid(row=1, column=5, columnspan=2, sticky=tk.W)
+        tk.Label(self, text=text, font=('cambria', 15), bg=colors['bg'], justify=tk.LEFT).grid(row=1, column=5, columnspan=1, sticky=tk.W)
 
         # folder
         img_folder = tk.PhotoImage(file='./images/folder_icon.png')
@@ -97,30 +111,30 @@ class PropertySetter(tk.Tk):
         tk.Button(self, command=self.save_song, bg=colors['bg'], bd=0, image=img_file).grid(row=2, column=1)
 
         # set buttons
-        tk.Button(self, command=self.set_drop_start, text='Set drop start', bg=colors['button'], font=('cambria', 15), width=15).grid(row=2, column=2)
-        tk.Button(self, command=self.set_drop_end, text='Set drop end', bg=colors['button'], font=('cambria', 15), width=15).grid(row=2, column=3)
-        tk.OptionMenu(self, 'Set key', 'A','B','C').grid(row=2, column=4)
+        img_button = tk.PhotoImage(file='./images/button.png')
+        tk.Button(self, command=self.set_drop_start, image=img_button, compound='center', text='Set drop start', bg=colors['bg'], bd=0, font=('cambria', 15)).grid(row=2, column=2)
+        tk.Button(self, command=self.set_drop_end, image=img_button, compound='center', text='Set drop end', bg=colors['bg'], bd=0, font=('cambria', 15)).grid(row=2, column=3)
+        tk.OptionMenu(self, 'Key', 'A','B','C','D','E','F','G').grid(row=2, column=4)
+        tk.OptionMenu(self, 'Mode', 'major', 'minor').grid(row=2, column=5)
 
         # set piano
         img_piano = tk.PhotoImage(file='./images/piano_icon.png')
-        tk.Button(self, command=self.open_piano, bg=colors['bg'], bd=0, image=img_piano).grid(row=2, column=6)
+        tk.Button(self, command=self.open_piano, bg=colors['bg'], bd=0, image=img_piano).grid(row=0, column=5)
 
         # previous / play / pause / restart / next buttons
-        resize_factor = 0.5
-
-        img_previous = resize_image('./images/previous_icon.png', resize_factor)
+        img_previous = tk.PhotoImage(file='./images/previous_icon.png')
         tk.Button(self, command=self.previous_song, bg=colors['bg'], bd=0, image=img_previous).grid(row=3, column=0, columnspan=2)
 
-        img_play = resize_image('./images/play_icon.png', resize_factor)
+        img_play = tk.PhotoImage(file='./images/play_icon.png')
         tk.Button(self, command=self.play, bg=colors['bg'], bd=0, image=img_play).grid(row=3, column=2)
 
-        img_pause = resize_image('./images/pause_icon.png', resize_factor)
+        img_pause = tk.PhotoImage(file='./images/pause_icon.png')
         tk.Button(self, command=self.pause, bg=colors['bg'], bd=0, image=img_pause).grid(row=3, column=3)
 
-        img_restart = resize_image('./images/restart_icon.png', resize_factor)
+        img_restart = tk.PhotoImage(file='./images/restart_icon.png')
         tk.Button(self, command=self.restart, bg=colors['bg'], bd=0, image=img_restart).grid(row=3, column=4)
         
-        img_next = resize_image('./images/next_icon.png', resize_factor)
+        img_next = tk.PhotoImage(file='./images/next_icon.png')
         tk.Button(self, command=self.next_song, bg=colors['bg'], bd=0, image=img_next).grid(row=3, column=5, columnspan=2)
 
         self.mainloop()
@@ -129,7 +143,7 @@ class PropertySetter(tk.Tk):
 
     def initiate_data_file(self):
         now = localtime()
-        filename = "analysis_{day:2d}{month:2d}{year:4d}-{hour:2d}:{min:2d}.csv"
+        filename = "data/analysis_{day:2d}{month:2d}{year:4d}-{hour:2d}:{min:2d}.csv"
         filename_formatted = filename.format(
             day = now.tm_mday,
             month = now.tm_mon,
