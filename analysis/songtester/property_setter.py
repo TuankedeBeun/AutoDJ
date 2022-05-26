@@ -35,6 +35,59 @@ Classes for setting song properties by listening and manually asserting data
 
 os.chdir('C:\\Users\\tuank\\Programming\\Python\\AutoDJ\\analysis\\songtester')
 
+class Song():
+    def __init__(self, folderpath, filename, dropstart, dropend, key):
+        self.folderpath = folderpath
+        self.filename = filename
+        self.filepath = folderpath + '/' + filename
+        self.dropstart = dropstart
+        self.dropend = dropend
+        self.key = key
+
+    def to_list(self):
+        return [self.filename, self.dropstart, self.dropend, self.key]
+
+class SongFolder():
+    def __init__(self, folderpath, datafolder='C:/Users/tuank/Programming/Python/AutoDJ/analysis/songtester/data'):
+        self.folderpath = folderpath
+        self.datafolder = datafolder
+        self.writer = self.initiate_data_file()
+        self.songs = self.load_songs()
+        self.total_songs = len(self.songs)
+
+    def initiate_data_file(self):
+        now = localtime()
+        filename = "analysis_{day:2d}{month:2d}{year:4d}-{hour:2d}:{min:2d}.csv"
+        filename_formatted = filename.format(
+            day = now.tm_mday,
+            month = now.tm_mon,
+            year = now.tm_year,
+            hour = now.tm_hour,
+            min = now.tm_min
+            )
+        datafilepath = self.datafolder + '/' + filename_formatted
+        csv_file = open(datafilepath, mode='w')
+        writer = csv.writer(csv_file)
+        writer.writerow(["song_path", "drop start", "drop end", "key"])
+        return writer
+
+    def load_songs(self):
+        song_file_names = os.listdir(self.folderpath)
+        songs = []
+
+        # only keep mp3 songs
+        for filename in song_file_names:
+            if (filename[-4:] == '.mp3'):
+                song = Song(self.folderpath, filename, 0, 0, None)
+                songs.append(song)
+
+        return songs
+
+    def save(self):
+        for song in self.songs:
+            self.writer.writerow(song.to_list())
+
+
 class PropertySetter(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -42,18 +95,16 @@ class PropertySetter(tk.Tk):
         # define properties
         self.default_music_directory = 'C:/Users/tuank/Music/Drum & Bass/'
         self.song_nr = 0
+        self.song_folder = None
         self.song_paths = []
         self.song_pdb = None
         self.music_folder = None
-        self.current_song = {
-            'song_path' : None,
-            'drop_start' : None,
-            'drop_end' : None,
-            'key' : None
-        }
+        self.current_song = None
+        self.current_dropstart = tk.IntVar(value=0)
+        self.current_dropend = tk.IntVar(value=0)
+        self.current_key = tk.StringVar(value='None')
 
         # create data file
-        self.writer = self.initiate_data_file()
         self.create_GUI()
         
     def create_GUI(self, width=1200, height=600):
@@ -82,7 +133,7 @@ class PropertySetter(tk.Tk):
         self.axis.plot(t, 2 * np.sin(2 * np.pi * t))
         # create canvas for figure
         figure_frame = tk.Frame(master=self)
-        figure_frame.grid(row=1, columnspan=4)
+        figure_frame.grid(row=1, rowspan=3, columnspan=4)
         canvas = FigureCanvasTkAgg(fig, master=figure_frame)  # A tk.DrawingArea.
         canvas.draw()
         canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
@@ -99,26 +150,28 @@ class PropertySetter(tk.Tk):
         self.canvas = canvas
 
         # info text
-        text = '''
-        Drop start:\t00:00:00
-        Drop end:\t00:00:00
-        Key:\t\t-'''
-        tk.Label(self, text=text, font=('cambria', 15), bg=colors['bg'], justify=tk.LEFT).grid(row=1, column=5, columnspan=1, sticky=tk.W)
+        tk.Label(self, text='drop start', font=('cambria', 15), bg=colors['bg'], justify=tk.LEFT).grid(row=1, column=5, columnspan=1, sticky=tk.W)
+        tk.Label(self, text='drop end', font=('cambria', 15), bg=colors['bg'], justify=tk.LEFT).grid(row=2, column=5, columnspan=1, sticky=tk.W)
+        tk.Label(self, text='key', font=('cambria', 15), bg=colors['bg'], justify=tk.LEFT).grid(row=3, column=5, columnspan=1, sticky=tk.W)
+
+        tk.Label(self, textvariable=self.current_dropstart, font=('cambria', 15), bg=colors['bg'], justify=tk.LEFT).grid(row=1, column=6, columnspan=1, sticky=tk.W)
+        tk.Label(self, textvariable=self.current_dropend, font=('cambria', 15), bg=colors['bg'], justify=tk.LEFT).grid(row=2, column=6, columnspan=1, sticky=tk.W)
+        tk.Label(self, textvariable=self.current_key, font=('cambria', 15), bg=colors['bg'], justify=tk.LEFT).grid(row=3, column=6, columnspan=1, sticky=tk.W)
 
         # folder
         img_folder = tk.PhotoImage(file='./images/folder_icon.png')
-        tk.Button(self, command=self.open_folder, bg=colors['bg'], bd=0, image=img_folder).grid(row=2, column=0)
+        tk.Button(self, command=self.open_folder, bg=colors['bg'], bd=0, image=img_folder).grid(row=4, column=0)
 
         # saving button
         img_file = tk.PhotoImage(file='./images/file_icon.png')
-        tk.Button(self, command=self.save_song, bg=colors['bg'], bd=0, image=img_file).grid(row=2, column=1)
+        tk.Button(self, command=self.save_data, bg=colors['bg'], bd=0, image=img_file).grid(row=4, column=1)
 
         # set buttons
         img_button = tk.PhotoImage(file='./images/button.png')
-        tk.Button(self, command=self.set_drop_start, image=img_button, compound='center', text='Set drop start', bg=colors['bg'], bd=0, font=('cambria', 15)).grid(row=2, column=2)
-        tk.Button(self, command=self.set_drop_end, image=img_button, compound='center', text='Set drop end', bg=colors['bg'], bd=0, font=('cambria', 15)).grid(row=2, column=3)
-        tk.OptionMenu(self, 'Key', 'A','B','C','D','E','F','G').grid(row=2, column=4)
-        tk.OptionMenu(self, 'Mode', 'major', 'minor').grid(row=2, column=5)
+        tk.Button(self, command=self.set_drop_start, image=img_button, compound='center', text='Set drop start', bg=colors['bg'], bd=0, font=('cambria', 15)).grid(row=4, column=2)
+        tk.Button(self, command=self.set_drop_end, image=img_button, compound='center', text='Set drop end', bg=colors['bg'], bd=0, font=('cambria', 15)).grid(row=4, column=3)
+        tk.OptionMenu(self, 'Key', 'A','B','C','D','E','F','G').grid(row=4, column=4)
+        tk.OptionMenu(self, 'Mode', 'major', 'minor').grid(row=4, column=5)
 
         # set piano
         img_piano = tk.PhotoImage(file='./images/piano_icon.png')
@@ -126,75 +179,62 @@ class PropertySetter(tk.Tk):
 
         # previous / play / pause / restart / next buttons
         img_previous = tk.PhotoImage(file='./images/previous_icon.png')
-        tk.Button(self, command=self.previous_song, bg=colors['bg'], bd=0, image=img_previous).grid(row=3, column=0, columnspan=2)
+        tk.Button(self, command=self.previous_song, bg=colors['bg'], bd=0, image=img_previous).grid(row=5, column=0, columnspan=2)
 
         img_play = tk.PhotoImage(file='./images/play_icon.png')
-        tk.Button(self, command=self.play, bg=colors['bg'], bd=0, image=img_play).grid(row=3, column=2)
+        tk.Button(self, command=self.play, bg=colors['bg'], bd=0, image=img_play).grid(row=5, column=2)
 
         img_pause = tk.PhotoImage(file='./images/pause_icon.png')
-        tk.Button(self, command=self.pause, bg=colors['bg'], bd=0, image=img_pause).grid(row=3, column=3)
+        tk.Button(self, command=self.pause, bg=colors['bg'], bd=0, image=img_pause).grid(row=5, column=3)
 
         img_restart = tk.PhotoImage(file='./images/restart_icon.png')
-        tk.Button(self, command=self.restart, bg=colors['bg'], bd=0, image=img_restart).grid(row=3, column=4)
+        tk.Button(self, command=self.restart, bg=colors['bg'], bd=0, image=img_restart).grid(row=5, column=4)
         
         img_next = tk.PhotoImage(file='./images/next_icon.png')
-        tk.Button(self, command=self.next_song, bg=colors['bg'], bd=0, image=img_next).grid(row=3, column=5, columnspan=2)
+        tk.Button(self, command=self.next_song, bg=colors['bg'], bd=0, image=img_next).grid(row=5, column=5, columnspan=2)
 
         self.mainloop()
         
         return
 
-    def initiate_data_file(self):
-        now = localtime()
-        filename = "data/analysis_{day:2d}{month:2d}{year:4d}-{hour:2d}:{min:2d}.csv"
-        filename_formatted = filename.format(
-            day = now.tm_mday,
-            month = now.tm_mon,
-            year = now.tm_year,
-            hour = now.tm_hour,
-            min = now.tm_min
-            )
-        csv_file = open(filename_formatted, mode='w')
-        writer = csv.writer(csv_file)
-        writer.writerow(["song_path", "drop start", "drop end", "key"])
-        return writer
-
     def open_folder(self):
         # load songs in chosen directory
         self.music_folder = tk.filedialog.askdirectory(initialdir=self.default_music_directory)
-        songs = os.listdir(self.music_folder)
-
-        # only keep mp3 songs
-        for song in songs:
-            if (song[-4:] != '.mp3'):
-                songs.remove(song)
-        
-        self.song_paths = songs
+        self.song_folder = SongFolder(self.music_folder)
         self.load_song()
         return
     
     def load_song(self):
-        self.current_song['song_path'] = self.song_paths[self.song_nr]
-        self.songtitle.config(text = self.current_song['song_path'][:-4])
+        self.current_song = self.song_folder.songs[self.song_nr]
+        self.songtitle.config(text = self.current_song.filename[:-4])
         
+        print('loading song ' + self.current_song.filename)
         # reads mp3 file and converts it into pydub's AudioSegment datatype
-        song_path = self.music_folder + '/' + self.current_song['song_path']
-        audiosegment = pydub.AudioSegment.from_mp3(song_path)
-
+        audiosegment = pydub.AudioSegment.from_mp3(self.current_song.filepath)
+        print('converting to numpy array')
         audio_np = np.array(audiosegment.get_array_of_samples())
         audio_np = audio_np.reshape((-1, 2)).sum(axis=1)
-        
-        time = np.linspace(0, audiosegment.duration_seconds, audio_np.size)
+        audio_np_sparse = audio_np[::1000]
+
+        # plotting
+        print('plotting')
+        time = np.linspace(0, audiosegment.duration_seconds, audio_np_sparse.size)
         self.axis.clear()
-        self.axis.plot(time, audio_np)
+        self.axis.plot(time, audio_np_sparse)
+        self.axis.set_xlim((0, time.max()))
         self.canvas.draw()
 
-    def save_song(self):
-        #TODO: implement check if song is already saved --> overwrite
-        if (None in self.current_song.values()):
+        # set song properties to display on screen
+        self.current_dropstart.set(self.current_song.dropstart)
+        self.current_dropend.set(self.current_song.dropend)
+        self.current_key.set(self.current_song.key)
+        print('loaded')
+
+    def save_data(self):
+        if (self.song_folder == None):
             tk.messagebox.showinfo('Fill properties')
         else:
-            self.writer.writerow([self.song_paths[self.song_nr]])
+            self.song_folder.save()
 
     def set_drop_start(self):
         pass
@@ -209,14 +249,12 @@ class PropertySetter(tk.Tk):
         pass
 
     def previous_song(self):
-        #TODO: load song if already in csv file
         if (self.song_nr > 0):
             self.song_nr -= 1
             self.load_song()
     
     def next_song(self):
-        #TODO: load song if already in csv file
-        if (self.song_nr < len(self.song_paths) - 1):
+        if (self.song_nr < self.song_folder.total_songs - 1):
             self.song_nr += 1
             self.load_song()
 
