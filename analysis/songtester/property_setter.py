@@ -107,10 +107,10 @@ class PropertySetter(tk.Tk):
         # create data file
         self.create_GUI()
         
-    def create_GUI(self, width=1200, height=600):
+    def create_GUI(self, width=800, height=700):
         # colors
         colors = {
-            'bg': '#D2CEC0',
+            'bg': '#444444',
             'button': '#FFC000',
             'blue': '#4472C4'
         }
@@ -119,22 +119,23 @@ class PropertySetter(tk.Tk):
         self.geometry("{width}x{height}".format(width = width, height = height))
         self.resizable(False, False)
         self.title('Song analyser')
-        self.rowconfigure(1, weight=4)
+        self.rowconfigure(3, weight=4)
         self.configure(background=colors['bg'])
         
         # song title
-        self.songtitle = tk.Label(text = 'Artist - Song title', bg=colors['bg'], font=('cambria', 40), wraplength=width-100)
-        self.songtitle.grid(row=0, columnspan=7)
+        self.songtitle = tk.Label(text = 'Artist - Song title', fg='white', bg=colors['bg'], font=('cambria', 25), wraplength=400)
+        self.songtitle.grid(row=0, rowspan=3, columnspan=3)
 
         # load figure for audio signal
         fig = Figure(figsize=(8, 2.5), dpi=100)
-        t = np.arange(0, 3, .01)
         self.axis = fig.add_subplot(111)
+        t = np.arange(0, 3, .01)
         self.axis.plot(t, 2 * np.sin(2 * np.pi * t))
+
         # create canvas for figure
         figure_frame = tk.Frame(master=self)
-        figure_frame.grid(row=1, rowspan=3, columnspan=4)
-        canvas = FigureCanvasTkAgg(fig, master=figure_frame)  # A tk.DrawingArea.
+        figure_frame.grid(row=3, columnspan=6, sticky=tk.W)
+        canvas = FigureCanvasTkAgg(fig, master=figure_frame)  # A tk.DrawingArea
         canvas.draw()
         canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
         # create toolbar
@@ -150,13 +151,13 @@ class PropertySetter(tk.Tk):
         self.canvas = canvas
 
         # info text
-        tk.Label(self, text='drop start', font=('cambria', 15), bg=colors['bg'], justify=tk.LEFT).grid(row=1, column=5, columnspan=1, sticky=tk.W)
-        tk.Label(self, text='drop end', font=('cambria', 15), bg=colors['bg'], justify=tk.LEFT).grid(row=2, column=5, columnspan=1, sticky=tk.W)
-        tk.Label(self, text='key', font=('cambria', 15), bg=colors['bg'], justify=tk.LEFT).grid(row=3, column=5, columnspan=1, sticky=tk.W)
+        tk.Label(self, text='drop start', font=('cambria', 15), fg='white', bg=colors['bg']).grid(row=0, column=3)
+        tk.Label(self, text='drop end', font=('cambria', 15), fg='white', bg=colors['bg']).grid(row=1, column=3)
+        tk.Label(self, text='key', font=('cambria', 15), fg='white', bg=colors['bg']).grid(row=2, column=3)
 
-        tk.Label(self, textvariable=self.current_dropstart, font=('cambria', 15), bg=colors['bg'], justify=tk.LEFT).grid(row=1, column=6, columnspan=1, sticky=tk.W)
-        tk.Label(self, textvariable=self.current_dropend, font=('cambria', 15), bg=colors['bg'], justify=tk.LEFT).grid(row=2, column=6, columnspan=1, sticky=tk.W)
-        tk.Label(self, textvariable=self.current_key, font=('cambria', 15), bg=colors['bg'], justify=tk.LEFT).grid(row=3, column=6, columnspan=1, sticky=tk.W)
+        tk.Label(self, textvariable=self.current_dropstart, font=('cambria', 15), fg='white', bg=colors['bg']).grid(row=0, column=4)
+        tk.Label(self, textvariable=self.current_dropend, font=('cambria', 15), fg='white', bg=colors['bg']).grid(row=1, column=4)
+        tk.Label(self, textvariable=self.current_key, font=('cambria', 15), fg='white', bg=colors['bg']).grid(row=2, column=4)
 
         # folder
         img_folder = tk.PhotoImage(file='./images/folder_icon.png')
@@ -168,14 +169,14 @@ class PropertySetter(tk.Tk):
 
         # set buttons
         img_button = tk.PhotoImage(file='./images/button.png')
-        tk.Button(self, command=self.set_drop_start, image=img_button, compound='center', text='Set drop start', bg=colors['bg'], bd=0, font=('cambria', 15)).grid(row=4, column=2)
-        tk.Button(self, command=self.set_drop_end, image=img_button, compound='center', text='Set drop end', bg=colors['bg'], bd=0, font=('cambria', 15)).grid(row=4, column=3)
+        tk.Button(self, command=self.set_drop_start, image=img_button, compound='center', text='Set drop start', fg='white', bg=colors['bg'], bd=0, font=('cambria', 15)).grid(row=4, column=2)
+        tk.Button(self, command=self.set_drop_end, image=img_button, compound='center', text='Set drop end', fg='white', bg=colors['bg'], bd=0, font=('cambria', 15)).grid(row=4, column=3)
         tk.OptionMenu(self, 'Key', 'A','B','C','D','E','F','G').grid(row=4, column=4)
         tk.OptionMenu(self, 'Mode', 'major', 'minor').grid(row=4, column=5)
 
         # set piano
         img_piano = tk.PhotoImage(file='./images/piano_icon.png')
-        tk.Button(self, command=self.open_piano, bg=colors['bg'], bd=0, image=img_piano).grid(row=0, column=5)
+        tk.Button(self, command=self.open_piano, bg=colors['bg'], bd=0, image=img_piano).grid(row=0, rowspan=3, column=5)
 
         # previous / play / pause / restart / next buttons
         img_previous = tk.PhotoImage(file='./images/previous_icon.png')
