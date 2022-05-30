@@ -52,13 +52,14 @@ class SongFolder():
     def __init__(self, folderpath, datafolder='C:/Users/tuank/Programming/Python/AutoDJ/analysis/songtester/data'):
         self.folderpath = folderpath
         self.datafolder = datafolder
-        self.writer = self.initiate_data_file()
         self.songs = self.load_songs()
         self.total_songs = len(self.songs)
+        self.datafilepath = None
+        self.initiate_data_file()
 
     def initiate_data_file(self):
         now = localtime()
-        filename = "analysis_{day:2d}{month:2d}{year:4d}-{hour:2d}:{min:2d}.csv"
+        filename = "analysis_{day:d}-{month:d}-{year:d}_{hour:d}-{min:d}.csv"
         filename_formatted = filename.format(
             day = now.tm_mday,
             month = now.tm_mon,
@@ -66,11 +67,11 @@ class SongFolder():
             hour = now.tm_hour,
             min = now.tm_min
             )
-        datafilepath = self.datafolder + '/' + filename_formatted
-        csv_file = open(datafilepath, mode='w')
-        writer = csv.writer(csv_file)
+        self.datafilepath = self.datafolder + '/' + filename_formatted
+        csv_file = open(self.datafilepath, mode='w')
+        writer = csv.writer(csv_file, delimiter=';') #TODO: delimiter is not yet ;
         writer.writerow(["song_path", "drop start", "drop end", "key"])
-        return writer
+        csv_file.close()
 
     def load_songs(self):
         song_file_names = os.listdir(self.folderpath)
@@ -79,14 +80,20 @@ class SongFolder():
         # only keep mp3 songs
         for filename in song_file_names:
             if (filename[-4:] == '.mp3'):
-                song = Song(self.folderpath, filename, 0, 0, None)
+                song = Song(self.folderpath, filename, 0, 0, 'None')
                 songs.append(song)
 
         return songs
 
     def save(self):
+        csv_file = open(self.datafilepath, mode='a')
+        writer = csv.writer(csv_file)
+
         for song in self.songs:
-            self.writer.writerow(song.to_list())
+            print('saving | ' + song.filename)
+            writer.writerow(song.to_list())
+
+        csv_file.close()
 
 
 class PropertySetter(tk.Tk):
@@ -103,6 +110,8 @@ class PropertySetter(tk.Tk):
         self.current_song = None
         self.current_dropstart = tk.IntVar(value=0)
         self.current_dropend = tk.IntVar(value=0)
+        self.current_tone = tk.StringVar(value='A')
+        self.current_mode = tk.StringVar(value='major')
         self.current_key = tk.StringVar(value='None')
         self.audioplayer = None
 
@@ -169,12 +178,16 @@ class PropertySetter(tk.Tk):
         img_file = tk.PhotoImage(file='./images/file_icon.png')
         tk.Button(self, command=self.save_data, bg=colors['bg'], bd=0, image=img_file).grid(row=4, column=1)
 
-        # set buttons
+        # set drop buttons
         img_button = tk.PhotoImage(file='./images/button.png')
         tk.Button(self, command=self.set_drop_start, image=img_button, compound='center', text='Set drop start', fg='white', bg=colors['bg'], bd=0, font=('cambria', 15)).grid(row=4, column=2)
         tk.Button(self, command=self.set_drop_end, image=img_button, compound='center', text='Set drop end', fg='white', bg=colors['bg'], bd=0, font=('cambria', 15)).grid(row=4, column=3)
-        tk.OptionMenu(self, 'Key', 'A','B','C','D','E','F','G').grid(row=4, column=4)
-        tk.OptionMenu(self, 'Mode', 'major', 'minor').grid(row=4, column=5)
+
+        # set key option menus
+        keys = ('A','B','C','D','E','F','G')
+        modes = ('major', 'minor')
+        tk.OptionMenu(self, self.current_tone, *keys, command=self.set_key).grid(row=4, column=4)
+        tk.OptionMenu(self, self.current_mode, *modes, command=self.set_key).grid(row=4, column=5)
 
         # set piano
         img_piano = tk.PhotoImage(file='./images/piano_icon.png')
@@ -240,21 +253,32 @@ class PropertySetter(tk.Tk):
         print('loaded')
 
     def save_data(self):
-        if (self.song_folder == None):
-            tk.messagebox.showinfo('Fill properties')
-        else:
+        if isinstance(self.song_folder, SongFolder):
+            print('Saving')
             self.song_folder.save()
+        else:
+            tk.messagebox.showinfo('Fill properties')
 
     def set_drop_start(self):
         if isinstance(self.audioplayer, AudioPlayer):
-            self.current_dropstart.set(round(self.audioplayer.now, 3))
+            dropstart = round(self.audioplayer.now, 3)
+            self.current_dropstart.set(dropstart)
+            self.current_song.dropstart = dropstart
 
     def set_drop_end(self):
         if isinstance(self.audioplayer, AudioPlayer):
-            self.current_dropend.set(round(self.audioplayer.now, 3))
+            dropend = round(self.audioplayer.now, 3)
+            self.current_dropend.set(dropend)
+            self.current_song.dropend = dropend
 
-    def set_key(self):
-        pass
+    def set_key(self, event):
+        key = self.current_tone.get()
+
+        if self.current_mode.get() == 'minor':
+            key += 'm'
+        
+        self.current_key.set(key)
+        self.current_song.key = key
 
     def open_piano(self):
         pass
@@ -281,9 +305,6 @@ class PropertySetter(tk.Tk):
         if isinstance(self.audioplayer, AudioPlayer):
             self.audioplayer.reset()
 
-    def select_region(self):
-        pass
-
 class AudioPlayer():
     def __init__(self, root, audio, cursor):
         self.root = root
@@ -302,7 +323,7 @@ class AudioPlayer():
             format = self.p.get_format_from_width(audio.sample_width),
             channels = audio.channels,
             rate = audio.frame_rate,
-            frames_per_buffer = 5000,
+            frames_per_buffer = 10000,
             output = True)
 
     def play(self, start, end):
