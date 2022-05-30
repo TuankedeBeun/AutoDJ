@@ -118,7 +118,7 @@ class PropertySetter(tk.Tk):
         }
         
         # initiate window
-        self.geometry("{width}x{height}".format(width = width, height = height))
+        self.geometry("{width}x{height}+350+50".format(width = width, height = height))
         self.resizable(False, False)
         self.title('Song analyser')
         self.rowconfigure(3, weight=4)
@@ -246,10 +246,12 @@ class PropertySetter(tk.Tk):
             self.song_folder.save()
 
     def set_drop_start(self):
-        pass
+        if isinstance(self.audioplayer, AudioPlayer):
+            self.current_dropstart.set(round(self.audioplayer.now, 3))
 
     def set_drop_end(self):
-        pass
+        if isinstance(self.audioplayer, AudioPlayer):
+            self.current_dropend.set(round(self.audioplayer.now, 3))
 
     def set_key(self):
         pass
