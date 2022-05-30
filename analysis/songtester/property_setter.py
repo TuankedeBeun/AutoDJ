@@ -2,7 +2,7 @@ import os
 import csv
 import tkinter as tk
 import numpy as np
-from time import localtime
+from time import localtime, sleep
 import pydub
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
@@ -103,6 +103,7 @@ class PropertySetter(tk.Tk):
         self.current_dropstart = tk.IntVar(value=0)
         self.current_dropend = tk.IntVar(value=0)
         self.current_key = tk.StringVar(value='None')
+        self.audioplayer = None
 
         # create data file
         self.create_GUI()
@@ -127,15 +128,15 @@ class PropertySetter(tk.Tk):
         self.songtitle.grid(row=0, rowspan=3, columnspan=3)
 
         # load figure for audio signal
-        fig = Figure(figsize=(8, 2.5), dpi=100)
-        self.axis = fig.add_subplot(111)
+        self.fig = Figure(figsize=(8, 2.5), dpi=100)
+        self.axis = self.fig.add_subplot(111)
         t = np.arange(0, 3, .01)
         self.axis.plot(t, 2 * np.sin(2 * np.pi * t))
 
         # create canvas for figure
         figure_frame = tk.Frame(master=self)
         figure_frame.grid(row=3, columnspan=6, sticky=tk.W)
-        canvas = FigureCanvasTkAgg(fig, master=figure_frame)  # A tk.DrawingArea
+        canvas = FigureCanvasTkAgg(self.fig, master=figure_frame)  # A tk.DrawingArea
         canvas.draw()
         canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
         # create toolbar
@@ -178,7 +179,7 @@ class PropertySetter(tk.Tk):
         img_piano = tk.PhotoImage(file='./images/piano_icon.png')
         tk.Button(self, command=self.open_piano, bg=colors['bg'], bd=0, image=img_piano).grid(row=0, rowspan=3, column=5)
 
-        # previous / play / pause / restart / next buttons
+        # previous / play / pause / reset / next buttons
         img_previous = tk.PhotoImage(file='./images/previous_icon.png')
         tk.Button(self, command=self.previous_song, bg=colors['bg'], bd=0, image=img_previous).grid(row=5, column=0, columnspan=2)
 
@@ -188,8 +189,8 @@ class PropertySetter(tk.Tk):
         img_pause = tk.PhotoImage(file='./images/pause_icon.png')
         tk.Button(self, command=self.pause, bg=colors['bg'], bd=0, image=img_pause).grid(row=5, column=3)
 
-        img_restart = tk.PhotoImage(file='./images/restart_icon.png')
-        tk.Button(self, command=self.restart, bg=colors['bg'], bd=0, image=img_restart).grid(row=5, column=4)
+        img_reset = tk.PhotoImage(file='./images/restart_icon.png')
+        tk.Button(self, command=self.reset, bg=colors['bg'], bd=0, image=img_reset).grid(row=5, column=4)
         
         img_next = tk.PhotoImage(file='./images/next_icon.png')
         tk.Button(self, command=self.next_song, bg=colors['bg'], bd=0, image=img_next).grid(row=5, column=5, columnspan=2)
@@ -219,16 +220,22 @@ class PropertySetter(tk.Tk):
 
         # plotting
         print('plotting')
-        time = np.linspace(0, audiosegment.duration_seconds, audio_np_sparse.size)
+        time = np.linspace(0, int(audiosegment.duration_seconds), audio_np_sparse.size)
         self.axis.clear()
         self.axis.plot(time, audio_np_sparse)
         self.axis.set_xlim((0, time.max()))
+        cursor = self.axis.axvline(linewidth=2, color='r')
         self.canvas.draw()
 
         # set song properties to display on screen
         self.current_dropstart.set(self.current_song.dropstart)
         self.current_dropend.set(self.current_song.dropend)
         self.current_key.set(self.current_song.key)
+
+        # instantiate audio player
+        print('loading audio player')
+        self.audioplayer = AudioPlayer(self, audiosegment, cursor)
+
         print('loaded')
 
     def save_data(self):
@@ -259,16 +266,63 @@ class PropertySetter(tk.Tk):
             self.song_nr += 1
             self.load_song()
 
-    def play(self, event):
+    def play(self):
+        if isinstance(self.audioplayer, AudioPlayer):
+            self.audioplayer.play(*self.axis.get_xlim())
+
+    def pause(self):
+        if isinstance(self.audioplayer, AudioPlayer):
+            self.audioplayer.pause()
+
+    def reset(self):
+        if isinstance(self.audioplayer, AudioPlayer):
+            self.audioplayer.reset()
+
+    def select_region(self):
         pass
 
-    def pause(self, event):
-        pass
+class AudioPlayer():
+    def __init__(self, root, audio, cursor):
+        self.root = root
+        self.audio = audio
+        self.cursor = cursor
+        self.start = 0
+        self.end = int(self.audio.duration_seconds)
+        self.now = 0
+        self.playing = False
+        self.paused = False
+        self.interval = 0.1
 
-    def restart(self, event):
-        pass
+    def play(self, start, end):
+        self.paused = False
 
-    def select_region(self, event):
-        pass
+        if (not self.playing) or ((self.start, self.end) != (start, end)):
+            self.start = start
+            self.end = end
+            self.now = start
+            self.playing = True
+            print('Playing')
+
+        while (self.now < self.end) and not self.paused:
+            self.cursor.set_xdata(self.now)
+            self.now += self.interval
+            self.root.canvas.draw_idle()
+            self.root.update()
+            print('time = ' + str(self.now))
+            sleep(self.interval)
+
+        if self.now >= self.end:
+            self.playing = False
+
+    def pause(self):
+        self.paused = True
+
+    def reset(self):
+        self.now = self.start
+
+        if self.paused:
+            self.cursor.set_xdata(self.now)
+            self.root.canvas.draw_idle()
+            self.root.update()
 
 tester = PropertySetter()
