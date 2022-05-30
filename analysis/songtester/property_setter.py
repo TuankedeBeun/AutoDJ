@@ -9,30 +9,11 @@ from matplotlib.backend_bases import key_press_handler
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
-'''
-Classes for setting song properties by listening and manually asserting data
-- GUI class:
-    * Tkinter window
-    * graphs Global Power History with matplotlib
-    * button for choosing directory
-    * button for previous/next song
-    * user can set start/end times
-    * buttons for play/pause/reset
-    * button for setting drop start (set a peep-sound)
-    * button for setting drop end (set a peep-sound)
-    * button for opening small piano keyboard
-    * drop down menu for setting key
-    * on screen record of current and saved properties
-    * button for saving current data
-    * pop-up message when clicking prev/next without saving
-    * connected with Data Manager
-
-- Data Manager class:
-    * automatically loads existing data
-    * functions for:
-        - returning saved data
-        - saving data
-'''
+#TODO: going to next song while playing creates bug
+#TODO: csv writer should use ; delimiter
+#TODO: csv writer should overwrite existing data
+#TODO: set cursor at specific location (maybe drag)
+#TODO: csv-filename should include foldername
 
 os.chdir('C:\\Users\\tuank\\Programming\\Python\\AutoDJ\\analysis\\songtester')
 
