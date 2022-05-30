@@ -4,6 +4,7 @@ import tkinter as tk
 import numpy as np
 from time import localtime, sleep
 import pydub
+import pyaudio
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
@@ -293,10 +294,20 @@ class AudioPlayer():
         self.paused = False
         self.interval = 0.1
 
+        # set up pyaudio stream
+        self.p = pyaudio.PyAudio()
+        self.stream = self.p.open(
+            format = self.p.get_format_from_width(audio.sample_width),
+            channels = audio.channels,
+            rate = audio.frame_rate,
+            frames_per_buffer = 5000,
+            output = True)
+
     def play(self, start, end):
         self.paused = False
 
         if (not self.playing) or ((self.start, self.end) != (start, end)):
+            # playing from start of the interval
             self.start = start
             self.end = end
             self.now = start
@@ -304,13 +315,17 @@ class AudioPlayer():
             print('Playing')
 
         while (self.now < self.end) and not self.paused:
+            # write audio data to pyaudio stream
+            data = self.audio[self.now*1000: (self.now + self.interval)*1000]._data
+            self.stream.write(data)
+
+            # update cursor
+            print('time = ' + str(self.now))
             self.cursor.set_xdata(self.now)
-            self.now += self.interval
             self.root.canvas.draw_idle()
             self.root.update()
-            print('time = ' + str(self.now))
-            sleep(self.interval)
-
+            self.now += self.interval
+        
         if self.now >= self.end:
             self.playing = False
 
