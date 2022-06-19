@@ -2,7 +2,7 @@ import os
 import csv
 import tkinter as tk
 import numpy as np
-from time import localtime
+from time import strftime
 import pydub
 import pyaudio
 from matplotlib.backend_bases import key_press_handler
@@ -38,20 +38,11 @@ class SongFolder():
         self.initiate_data_file()
 
     def initiate_data_file(self):
-        now = localtime() #TODO: probably easier way to get a default date string
-        filename = "analysis_{folder:s}_{day:s}-{month:s}-{year:s}T{hour:s}-{min:s}-{sec:s}.csv"
-        filename_formatted = filename.format(
-            folder = os.path.basename(self.folderpath),
-            day = str(now.tm_mday).zfill(2),
-            month = str(now.tm_mon).zfill(2),
-            year = str(now.tm_year).zfill(4),
-            hour = str(now.tm_hour).zfill(2),
-            min = str(now.tm_min).zfill(2),
-            sec = str(now.tm_sec).zfill(2)
-        )
+        filename = "analysis_{folder:s}_{date:s}.csv"
+        filename_formatted = filename.format(date = strftime("%Y%m%d-%H%M%S"))
         self.datafilepath = self.datafolder + '/' + filename_formatted
         csv_file = open(self.datafilepath, mode='w')
-        writer = csv.writer(csv_file, delimiter=';') #TODO: delimiter is not yet ;
+        writer = csv.writer(csv_file, delimiter=';')
         writer.writerow(["song_path", "drop start", "drop end", "key"])
         csv_file.close()
 
