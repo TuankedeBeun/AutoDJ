@@ -34,19 +34,13 @@ class SongFolder():
         self.songs = self.load_songs()
         self.total_songs = len(self.songs)
         self.datafilepath = None
-        self.initiate_data_file()
-
-    def initiate_data_file(self):
         filename = "analysis_{folder:s}_{date:s}.csv"
         filename_formatted = filename.format(
             folder = os.path.basename(self.folderpath),
             date = strftime("%Y%m%d-%H%M%S")
         )
         self.datafilepath = self.datafolder + '/' + filename_formatted
-        csv_file = open(self.datafilepath, mode='w')
-        writer = csv.writer(csv_file, delimiter=';')
-        writer.writerow(["song_path", "drop start", "drop end", "key"])
-        csv_file.close()
+        self.header = ["song_path", "drop start", "drop end", "key"]
 
     def load_songs(self):
         song_file_names = os.listdir(self.folderpath)
@@ -61,9 +55,10 @@ class SongFolder():
         return songs
 
     def save(self):
-        csv_file = open(self.datafilepath, mode='a')
-        writer = csv.writer(csv_file)
+        csv_file = open(self.datafilepath, mode='w')
+        writer = csv.writer(csv_file, delimiter=';')
 
+        writer.writerow(self.header)
         for song in self.songs:
             print('saving | ' + song.filename)
             writer.writerow(song.to_list())
@@ -87,7 +82,7 @@ class PropertySetter(tk.Tk):
         self.current_dropend = tk.IntVar(value=0)
         self.current_tone = tk.StringVar(value='A')
         self.current_mode = tk.StringVar(value='major')
-        self.current_key = tk.StringVar(value='None')
+        self.current_key = tk.StringVar(value='A')
         self.audioplayer = None
 
         # create data file
