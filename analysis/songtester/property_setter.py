@@ -9,10 +9,9 @@ from matplotlib.backend_bases import key_press_handler
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
-#TODO: csv writer should use ; delimiter
 #TODO: csv writer should overwrite existing data
 #TODO: set cursor at specific location (maybe drag)
-#TODO: a set drop start/end must indicate a beep sound
+#TODO: a set drop start/end must indicate a beep sound and a vertical line in the plot
 
 os.chdir('C:\\Users\\tuank\\Programming\\Python\\AutoDJ\\analysis\\songtester')
 
@@ -39,7 +38,10 @@ class SongFolder():
 
     def initiate_data_file(self):
         filename = "analysis_{folder:s}_{date:s}.csv"
-        filename_formatted = filename.format(date = strftime("%Y%m%d-%H%M%S"))
+        filename_formatted = filename.format(
+            folder = os.path.basename(self.folderpath),
+            date = strftime("%Y%m%d-%H%M%S")
+        )
         self.datafilepath = self.datafolder + '/' + filename_formatted
         csv_file = open(self.datafilepath, mode='w')
         writer = csv.writer(csv_file, delimiter=';')
