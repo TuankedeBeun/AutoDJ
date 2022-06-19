@@ -2,18 +2,17 @@ import os
 import csv
 import tkinter as tk
 import numpy as np
-from time import localtime, sleep
+from time import localtime
 import pydub
 import pyaudio
 from matplotlib.backend_bases import key_press_handler
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
-#TODO: going to next song while playing creates bug
 #TODO: csv writer should use ; delimiter
 #TODO: csv writer should overwrite existing data
 #TODO: set cursor at specific location (maybe drag)
-#TODO: csv-filename should include foldername
+#TODO: a set drop start/end must indicate a beep sound
 
 os.chdir('C:\\Users\\tuank\\Programming\\Python\\AutoDJ\\analysis\\songtester')
 
@@ -39,15 +38,17 @@ class SongFolder():
         self.initiate_data_file()
 
     def initiate_data_file(self):
-        now = localtime()
-        filename = "analysis_{day:d}-{month:d}-{year:d}_{hour:d}-{min:d}.csv"
+        now = localtime() #TODO: probably easier way to get a default date string
+        filename = "analysis_{folder:s}_{day:s}-{month:s}-{year:s}T{hour:s}-{min:s}-{sec:s}.csv"
         filename_formatted = filename.format(
-            day = now.tm_mday,
-            month = now.tm_mon,
-            year = now.tm_year,
-            hour = now.tm_hour,
-            min = now.tm_min
-            )
+            folder = os.path.basename(self.folderpath),
+            day = str(now.tm_mday).zfill(2),
+            month = str(now.tm_mon).zfill(2),
+            year = str(now.tm_year).zfill(4),
+            hour = str(now.tm_hour).zfill(2),
+            min = str(now.tm_min).zfill(2),
+            sec = str(now.tm_sec).zfill(2)
+        )
         self.datafilepath = self.datafolder + '/' + filename_formatted
         csv_file = open(self.datafilepath, mode='w')
         writer = csv.writer(csv_file, delimiter=';') #TODO: delimiter is not yet ;
@@ -265,11 +266,15 @@ class PropertySetter(tk.Tk):
         pass
 
     def previous_song(self):
+        self.pause()
+
         if (self.song_nr > 0):
             self.song_nr -= 1
             self.load_song()
     
     def next_song(self):
+        self.pause()
+
         if (self.song_nr < self.song_folder.total_songs - 1):
             self.song_nr += 1
             self.load_song()
