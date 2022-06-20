@@ -9,7 +9,6 @@ from matplotlib.backend_bases import key_press_handler
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
-#TODO: csv writer should overwrite existing data
 #TODO: set cursor at specific location (maybe drag)
 #TODO: a set drop start/end must indicate a beep sound and a vertical line in the plot
 
@@ -216,6 +215,10 @@ class PropertySetter(tk.Tk):
         self.current_dropend.set(self.current_song.dropend)
         self.current_key.set(self.current_song.key)
 
+        # create invisible drop start/end markers
+        self.drop_start_line = self.axis.axvline(linewidth=2, color='orange', linestyle='--', visible=False)
+        self.drop_end_line = self.axis.axvline(linewidth=2, color='orange', linestyle='--', visible=False)
+
         # instantiate audio player
         print('loading audio player')
         self.audioplayer = AudioPlayer(self, audiosegment, cursor)
@@ -235,11 +238,17 @@ class PropertySetter(tk.Tk):
             self.current_dropstart.set(dropstart)
             self.current_song.dropstart = dropstart
 
+            self.drop_start_line.set_visible(True)
+            self.drop_start_line.set_xdata(dropstart)
+
     def set_drop_end(self):
         if isinstance(self.audioplayer, AudioPlayer):
             dropend = round(self.audioplayer.now, 3)
             self.current_dropend.set(dropend)
             self.current_song.dropend = dropend
+
+            self.drop_end_line.set_visible(True)
+            self.drop_end_line.set_xdata(dropend)
 
     def set_key(self, event):
         key = self.current_tone.get()
