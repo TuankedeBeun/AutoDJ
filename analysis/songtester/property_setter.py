@@ -1,6 +1,8 @@
 import os
 import csv
+from this import d
 import tkinter as tk
+from matplotlib.cbook import silent_list
 import numpy as np
 from time import strftime
 import pydub
@@ -9,8 +11,9 @@ from matplotlib.backend_bases import key_press_handler
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
-#TODO: set cursor at specific location (maybe drag)
-#TODO: a set drop start/end must indicate a beep sound and a vertical line in the plot
+#TODO: optional: set cursor at specific location (maybe drag)
+#TODO: optional: open piano
+#TODO: a set drop start/end must indicate a beep sound
 
 os.chdir('C:\\Users\\tuank\\Programming\\Python\\AutoDJ\\analysis\\songtester')
 
@@ -234,19 +237,29 @@ class PropertySetter(tk.Tk):
 
     def set_drop_start(self):
         if isinstance(self.audioplayer, AudioPlayer):
-            dropstart = round(self.audioplayer.now, 3)
+            # get drop start from audioplayer
+            dropstart = self.audioplayer.set_beep()
+            dropstart = round(dropstart, 3)
+
+            # save data
             self.current_dropstart.set(dropstart)
             self.current_song.dropstart = dropstart
 
+            # update line
             self.drop_start_line.set_visible(True)
             self.drop_start_line.set_xdata(dropstart)
 
     def set_drop_end(self):
         if isinstance(self.audioplayer, AudioPlayer):
-            dropend = round(self.audioplayer.now, 3)
+            # get drop start from audioplayer
+            dropend = self.audioplayer.set_beep()
+            dropend = round(dropend, 3)
+
+            # save data
             self.current_dropend.set(dropend)
             self.current_song.dropend = dropend
 
+            # update line
             self.drop_end_line.set_visible(True)
             self.drop_end_line.set_xdata(dropend)
 
@@ -299,6 +312,7 @@ class AudioPlayer():
         self.playing = False
         self.paused = False
         self.interval = 0.1
+        self.frames_per_buffer = 10000
 
         # set up pyaudio stream
         self.p = pyaudio.PyAudio()
@@ -306,8 +320,9 @@ class AudioPlayer():
             format = self.p.get_format_from_width(audio.sample_width),
             channels = audio.channels,
             rate = audio.frame_rate,
-            frames_per_buffer = 10000,
-            output = True)
+            frames_per_buffer = self.frames_per_buffer,
+            output = True
+        )
 
     def play(self, start, end):
         self.paused = False
@@ -345,5 +360,29 @@ class AudioPlayer():
             self.cursor.set_xdata(self.now)
             self.root.canvas.draw_idle()
             self.root.update()
+
+    def set_beep(self):
+        # create signal
+        length_sec = 0.05
+        freq = 1600
+        amp = 50000
+        time_beep = np.linspace(0, length_sec, int(self.audio.frame_rate * length_sec))
+        beep_data = (amp*np.cos(2 * np.pi * freq * time_beep)).astype(np.int16)
+
+        # convert signal to audio
+        beep_audio = pydub.AudioSegment(
+            data = beep_data.tobytes(),
+            frame_rate = self.audio.frame_rate,
+            sample_width = beep_data.dtype.itemsize,
+            channels = 1
+        )
+
+        # add to audio at the right spot
+        beep_start = self.now - self.frames_per_buffer / self.audio.frame_rate
+        beep_audio = pydub.AudioSegment.silent(duration = beep_start * 1000) + beep_audio
+        self.audio = self.audio.overlay(beep_audio)
+
+        return beep_start
+        
 
 tester = PropertySetter()
