@@ -1,6 +1,5 @@
 import os
 import csv
-from this import d
 import tkinter as tk
 from matplotlib.cbook import silent_list
 import numpy as np
@@ -13,7 +12,6 @@ from matplotlib.figure import Figure
 
 #TODO: optional: set cursor at specific location (maybe drag)
 #TODO: optional: open piano
-#TODO: a set drop start/end must indicate a beep sound
 
 os.chdir('C:\\Users\\tuank\\Programming\\Python\\AutoDJ\\analysis\\songtester')
 
@@ -238,7 +236,7 @@ class PropertySetter(tk.Tk):
     def set_drop_start(self):
         if isinstance(self.audioplayer, AudioPlayer):
             # get drop start from audioplayer
-            dropstart = self.audioplayer.set_beep()
+            dropstart = self.audioplayer.set_drop_start()
             dropstart = round(dropstart, 3)
 
             # save data
@@ -252,7 +250,7 @@ class PropertySetter(tk.Tk):
     def set_drop_end(self):
         if isinstance(self.audioplayer, AudioPlayer):
             # get drop start from audioplayer
-            dropend = self.audioplayer.set_beep()
+            dropend = self.audioplayer.set_drop_end()
             dropend = round(dropend, 3)
 
             # save data
@@ -313,6 +311,8 @@ class AudioPlayer():
         self.paused = False
         self.interval = 0.1
         self.frames_per_buffer = 10000
+        self.drop_start = None
+        self.drop_end = None
 
         # set up pyaudio stream
         self.p = pyaudio.PyAudio()
@@ -336,9 +336,19 @@ class AudioPlayer():
             print('Playing')
 
         while (self.now < self.end) and not self.paused:
+            audio_interval = self.audio[self.now*1000: (self.now + self.interval)*1000]
+
+            # ad beep if drop start/end is in next interval
+            if (self.drop_start):
+                if (self.now <= self.drop_start and (self.now + self.interval) > self.drop_start):
+                    audio_interval = self.add_beep(audio_interval)
+
+            if (self.drop_end):
+                if (self.now <= self.drop_end and (self.now + self.interval) > self.drop_end):
+                    audio_interval = self.add_beep(audio_interval)
+
             # write audio data to pyaudio stream
-            data = self.audio[self.now*1000: (self.now + self.interval)*1000]._data
-            self.stream.write(data)
+            self.stream.write(audio_interval._data)
 
             # update cursor
             print('time = ' + str(self.now))
@@ -361,28 +371,35 @@ class AudioPlayer():
             self.root.canvas.draw_idle()
             self.root.update()
 
-    def set_beep(self):
+    def set_drop_start(self):
+        latency = self.stream.get_output_latency()
+        print('latency: ', latency)
+        self.drop_start = self.now - latency
+        return self.drop_start
+
+    def set_drop_end(self):
+        latency = self.stream.get_output_latency()
+        print('latency: ', latency)
+        self.drop_end = self.now - latency
+        return self.drop_end
+
+    def add_beep(self, audio_interval):
         # create signal
-        length_sec = 0.05
         freq = 1600
         amp = 50000
-        time_beep = np.linspace(0, length_sec, int(self.audio.frame_rate * length_sec))
+        time_beep = np.linspace(0, self.interval, int(self.audio.frame_rate * self.interval))
         beep_data = (amp*np.cos(2 * np.pi * freq * time_beep)).astype(np.int16)
 
         # convert signal to audio
-        beep_audio = pydub.AudioSegment(
+        beep_audiosegment = pydub.AudioSegment(
             data = beep_data.tobytes(),
             frame_rate = self.audio.frame_rate,
             sample_width = beep_data.dtype.itemsize,
             channels = 1
         )
 
-        # add to audio at the right spot
-        beep_start = self.now - self.frames_per_buffer / self.audio.frame_rate
-        beep_audio = pydub.AudioSegment.silent(duration = beep_start * 1000) + beep_audio
-        self.audio = self.audio.overlay(beep_audio)
+        # add beep to audio
+        return audio_interval.overlay(beep_audiosegment)
 
-        return beep_start
-        
 
 tester = PropertySetter()
