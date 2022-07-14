@@ -8,7 +8,6 @@ import pyaudio
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
-#TODO: fix beep sound: now comes too early
 #TODO: optional: piano UI
 
 os.chdir('C:\\Users\\tuank\\Programming\\Python\\AutoDJ\\analysis\\songtester')
@@ -396,14 +395,18 @@ class AudioPlayer():
             self.root.update()
 
     def set_drop_start(self):
-        latency = self.stream.get_output_latency()
+        frames_in_buffer = self.frames_per_buffer - self.stream.get_write_available()
+        latency = frames_in_buffer/self.audio.frame_rate
         print('latency: ', latency)
+
         self.drop_start = self.now - latency
         return self.drop_start
 
     def set_drop_end(self):
-        latency = self.stream.get_output_latency()
+        frames_in_buffer = self.frames_per_buffer - self.stream.get_write_available()
+        latency = frames_in_buffer/self.audio.frame_rate
         print('latency: ', latency)
+
         self.drop_end = self.now - latency
         return self.drop_end
 
