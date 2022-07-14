@@ -1,17 +1,16 @@
 import os
 import csv
+from re import L
 import tkinter as tk
-from matplotlib.cbook import silent_list
 import numpy as np
 from time import strftime
 import pydub
 import pyaudio
-from matplotlib.backend_bases import key_press_handler
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
-#TODO: optional: set cursor at specific location (maybe drag)
-#TODO: optional: open piano
+#TODO: fix beep sound: now comes too early
+#TODO: optional: piano UI
 
 os.chdir('C:\\Users\\tuank\\Programming\\Python\\AutoDJ\\analysis\\songtester')
 
@@ -124,12 +123,23 @@ class PropertySetter(tk.Tk):
         toolbar.update()
         canvas.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
-        def on_key_press(event):
-            print("you pressed {}".format(event.key))
-            key_press_handler(event, canvas, toolbar)
-
-        canvas.mpl_connect("key_press_event", on_key_press)
         self.canvas = canvas
+
+        def on_key_press(event):
+            print("you pressed {}".format(event.keysym))
+
+            if event.keysym == 'Right':
+                self.forwards5seconds()
+            elif event.keysym == 'Left':
+                self.backwards5seconds()
+            elif event.keysym == 'space':
+                self.toggle_play()
+            elif event.keysym == 's':
+                self.set_drop_start()
+            elif event.keysym == 'e':
+                self.set_drop_end()
+
+        self.bind('<Key>', on_key_press)
 
         # info text
         tk.Label(self, text='drop start', font=('cambria', 15), fg='white', bg=colors['bg']).grid(row=0, column=3)
@@ -150,8 +160,8 @@ class PropertySetter(tk.Tk):
 
         # set drop buttons
         img_button = tk.PhotoImage(file='./images/button.png')
-        tk.Button(self, command=self.set_drop_start, image=img_button, compound='center', text='Set drop start', fg='white', bg=colors['bg'], bd=0, font=('cambria', 15)).grid(row=4, column=2)
-        tk.Button(self, command=self.set_drop_end, image=img_button, compound='center', text='Set drop end', fg='white', bg=colors['bg'], bd=0, font=('cambria', 15)).grid(row=4, column=3)
+        tk.Button(self, command=self.set_drop_start, image=img_button, compound='center', bg=colors['bg'], bd=0, text='Set drop start\n(s)', fg='white', font=('cambria', 15)).grid(row=4, column=2)
+        tk.Button(self, command=self.set_drop_end, image=img_button, compound='center', bg=colors['bg'], bd=0, text='Set drop end\n(e)', fg='white', font=('cambria', 15)).grid(row=4, column=3)
 
         # set key option menus
         keys = ('A','B','C','D','E','F','G')
@@ -295,9 +305,24 @@ class PropertySetter(tk.Tk):
         if isinstance(self.audioplayer, AudioPlayer):
             self.audioplayer.pause()
 
+    def toggle_play(self):
+        if isinstance(self.audioplayer, AudioPlayer):
+            if self.audioplayer.paused:
+                self.play()
+            else:
+                self.pause()
+
     def reset(self):
         if isinstance(self.audioplayer, AudioPlayer):
             self.audioplayer.reset()
+    
+    def forwards5seconds(self):
+        if isinstance(self.audioplayer, AudioPlayer):
+            self.audioplayer.add_seconds(5)
+    
+    def backwards5seconds(self):
+        if isinstance(self.audioplayer, AudioPlayer):
+            self.audioplayer.add_seconds(-5)
 
 class AudioPlayer():
     def __init__(self, root, audio, cursor):
@@ -338,7 +363,7 @@ class AudioPlayer():
         while (self.now < self.end) and not self.paused:
             audio_interval = self.audio[self.now*1000: (self.now + self.interval)*1000]
 
-            # ad beep if drop start/end is in next interval
+            # add beep if drop start/end is in next interval
             if (self.drop_start):
                 if (self.now <= self.drop_start and (self.now + self.interval) > self.drop_start):
                     audio_interval = self.add_beep(audio_interval)
@@ -400,6 +425,18 @@ class AudioPlayer():
 
         # add beep to audio
         return audio_interval.overlay(beep_audiosegment)
+
+    def add_seconds(self, seconds):
+        if self.now + seconds <= self.start:
+            self.now = self.start
+        elif self.now + seconds >= self.end:
+            self.now = self.end
+        else:
+            self.now += seconds
+        
+        self.cursor.set_xdata(self.now)
+        self.root.canvas.draw_idle()
+        self.root.update()
 
 
 tester = PropertySetter()
