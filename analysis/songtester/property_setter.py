@@ -1,6 +1,5 @@
 import os
 import csv
-from re import L
 import tkinter as tk
 import numpy as np
 from time import strftime
