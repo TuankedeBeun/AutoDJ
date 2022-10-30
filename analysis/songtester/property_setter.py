@@ -62,7 +62,6 @@ class SongFolder():
 
         csv_file.close()
 
-
 class PropertySetter(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -217,16 +216,26 @@ class PropertySetter(tk.Tk):
         self.axis.plot(time, audio_np_sparse)
         self.axis.set_xlim((0, time.max()))
         cursor = self.axis.axvline(linewidth=2, color='r')
-        self.canvas.draw()
 
         # set song properties to display on screen
         self.current_dropstart.set(self.current_song.dropstart)
         self.current_dropend.set(self.current_song.dropend)
         self.current_key.set(self.current_song.key)
 
-        # create invisible drop start/end markers
+        # create drop start marker
         self.drop_start_line = self.axis.axvline(linewidth=2, color='orange', linestyle='--', visible=False)
+        if self.current_song.dropstart:
+            self.drop_start_line.set_visible(True)
+            self.drop_start_line.set_xdata(self.current_song.dropstart)
+
+        # create drop end marker
         self.drop_end_line = self.axis.axvline(linewidth=2, color='orange', linestyle='--', visible=False)
+        if self.current_song.dropend:
+            self.drop_end_line.set_visible(True)
+            self.drop_end_line.set_xdata(self.current_song.dropend)
+        
+        # update canvas
+        self.canvas.draw()
 
         # instantiate audio player
         print('loading audio player')
@@ -374,7 +383,7 @@ class AudioPlayer():
             self.stream.write(audio_interval._data)
 
             # update cursor
-            print('time = ' + str(self.now))
+            # print('time = ' + str(self.now))
             self.cursor.set_xdata(self.now)
             self.root.canvas.draw_idle()
             self.root.update()
