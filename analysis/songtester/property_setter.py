@@ -30,7 +30,6 @@ class SongFolder():
         self.datafolder = datafolder
         self.songs = self.load_songs()
         self.total_songs = len(self.songs)
-        self.datafilepath = None
         filename = "analysis_{folder:s}_{date:s}.csv"
         filename_formatted = filename.format(
             folder = os.path.basename(self.folderpath),
@@ -51,6 +50,25 @@ class SongFolder():
 
         return songs
 
+    def load_songs_from_csv(self, csv_path):
+        print('loading songs from csv')
+        csv_data = open(csv_path, mode='r')
+        dict_reader = csv.DictReader(csv_data, delimiter=';')
+        songs = []
+
+        for song_data in dict_reader:
+            drop_start = float(song_data['drop start'])
+            drop_end = float(song_data['drop end'])
+            if song_data['key'] == 'None':
+                key = None
+            else:
+                key = song_data['key']
+
+            song = Song(self.folderpath, song_data['song_path'], drop_start, drop_end, key)
+            songs.append(song)
+
+        return songs
+
     def save(self):
         csv_file = open(self.datafilepath, mode='w')
         writer = csv.writer(csv_file, delimiter=';')
@@ -63,15 +81,14 @@ class SongFolder():
         csv_file.close()
 
 class PropertySetter(tk.Tk):
-    def __init__(self):
+    def __init__(self, csv_path=None):
         super().__init__()
 
-        # define properties
         self.default_music_directory = 'C:/Users/tuank/Music/Drum & Bass/'
+
+        # define properties
         self.song_nr = 0
         self.song_folder = None
-        self.song_paths = []
-        self.song_pdb = None
         self.music_folder = None
         self.current_song = None
         self.current_dropstart = tk.IntVar(value=0)
@@ -79,10 +96,27 @@ class PropertySetter(tk.Tk):
         self.current_tone = tk.StringVar(value='A')
         self.current_mode = tk.StringVar(value='major')
         self.current_key = tk.StringVar(value='A')
-        self.audioplayer = None
 
-        # create data file
+        # first create GUI, then load csv data
+        if csv_path:
+            self.after(1000, self.load_from_csv, csv_path)
+
         self.create_GUI()
+
+    def load_from_csv(self, csv_path):
+        # determine song_folder
+        file_name = csv_path.split('\\')[-1]
+        self.song_folder = file_name.split('_')[1]
+        self.music_folder = self.default_music_directory + self.song_folder
+
+        # open new SongFolder and fill it with csv data
+        self.song_folder = SongFolder(self.music_folder)
+        self.song_folder.songs = self.song_folder.load_songs_from_csv(csv_path)
+
+        # find first song with empty values
+        empty_songs = [song for song in self.song_folder.songs if song.dropstart == 0 or song.dropend == 0 or song.key == 'None']
+        self.song_nr = self.song_folder.songs.index(empty_songs[0])
+        self.load_song()
         
     def create_GUI(self, width=800, height=700):
         # colors
@@ -185,9 +219,9 @@ class PropertySetter(tk.Tk):
         
         img_next = tk.PhotoImage(file='./images/next_icon.png')
         tk.Button(self, command=self.next_song, bg=colors['bg'], bd=0, image=img_next).grid(row=5, column=5, columnspan=2)
-
-        self.mainloop()
         
+        self.mainloop()
+
         return
 
     def open_folder(self):
@@ -449,5 +483,5 @@ class AudioPlayer():
         self.root.canvas.draw_idle()
         self.root.update()
 
-
-tester = PropertySetter()
+csv_path = r"C:\Users\tuank\Programming\Python\AutoDJ\analysis\songtester\data\analysis_testfolder_20221030-205830.csv"
+tester = PropertySetter(csv_path=csv_path)
