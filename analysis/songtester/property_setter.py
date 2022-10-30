@@ -195,7 +195,7 @@ class PropertySetter(tk.Tk):
         tk.Button(self, command=self.set_drop_end, image=img_button, compound='center', bg=colors['bg'], bd=0, text='Set drop end\n(e)', fg='white', font=('cambria', 15)).grid(row=4, column=3)
 
         # set key option menus
-        keys = ('A','B','C','D','E','F','G')
+        keys = ('A','Bb','B','C','C#','D','Eb','E','F','F#','G','G#')
         modes = ('major', 'minor')
         tk.OptionMenu(self, self.current_tone, *keys, command=self.set_key).grid(row=4, column=4)
         tk.OptionMenu(self, self.current_mode, *modes, command=self.set_key).grid(row=4, column=5)
