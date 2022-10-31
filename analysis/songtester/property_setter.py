@@ -8,8 +8,6 @@ import pyaudio
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
-#TODO: optional: piano UI
-
 os.chdir('C:\\Users\\tuank\\Programming\\Python\\AutoDJ\\analysis\\songtester')
 
 class Song():
@@ -81,10 +79,11 @@ class SongFolder():
         csv_file.close()
 
 class PropertySetter(tk.Tk):
-    def __init__(self, csv_path=None):
+    def __init__(self):
         super().__init__()
 
         self.default_music_directory = 'C:/Users/tuank/Music/Drum & Bass/'
+        self.default_data_directory = 'C:/Users/tuank/Programming/Python/AutoDJ/analysis/songtester/data'
 
         # define properties
         self.song_nr = 0
@@ -97,27 +96,8 @@ class PropertySetter(tk.Tk):
         self.current_mode = tk.StringVar(value='major')
         self.current_key = tk.StringVar(value='A')
 
-        # first create GUI, then load csv data
-        if csv_path:
-            self.after(1000, self.load_from_csv, csv_path)
-
         self.create_GUI()
 
-    def load_from_csv(self, csv_path):
-        # determine song_folder
-        file_name = csv_path.split('\\')[-1]
-        self.song_folder = file_name.split('_')[1]
-        self.music_folder = self.default_music_directory + self.song_folder
-
-        # open new SongFolder and fill it with csv data
-        self.song_folder = SongFolder(self.music_folder)
-        self.song_folder.songs = self.song_folder.load_songs_from_csv(csv_path)
-
-        # find first song with empty values
-        empty_songs = [song for song in self.song_folder.songs if song.dropstart == 0 or song.dropend == 0 or song.key == 'None']
-        self.song_nr = self.song_folder.songs.index(empty_songs[0])
-        self.load_song()
-        
     def create_GUI(self, width=800, height=700):
         # colors
         colors = {
@@ -132,10 +112,14 @@ class PropertySetter(tk.Tk):
         self.title('Song analyser')
         self.rowconfigure(3, weight=4)
         self.configure(background=colors['bg'])
+
+        # new folder
+        img_new = tk.PhotoImage(file='./images/plus.png')
+        tk.Button(self, command=self.new_folder, bg=colors['bg'], bd=0, image=img_new).grid(row=0, rowspan=3, column=0)
         
         # song title
         self.songtitle = tk.Label(text = 'Artist - Song title', fg='white', bg=colors['bg'], font=('cambria', 25), wraplength=400)
-        self.songtitle.grid(row=0, rowspan=3, columnspan=3)
+        self.songtitle.grid(row=0, rowspan=3, column=1, columnspan=3)
 
         # load figure for audio signal
         self.fig = Figure(figsize=(8, 2.5), dpi=100)
@@ -173,17 +157,17 @@ class PropertySetter(tk.Tk):
         self.bind('<Key>', on_key_press)
 
         # info text
-        tk.Label(self, text='drop start', font=('cambria', 15), fg='white', bg=colors['bg']).grid(row=0, column=3)
-        tk.Label(self, text='drop end', font=('cambria', 15), fg='white', bg=colors['bg']).grid(row=1, column=3)
-        tk.Label(self, text='key', font=('cambria', 15), fg='white', bg=colors['bg']).grid(row=2, column=3)
+        tk.Label(self, text='drop start', font=('cambria', 15), fg='white', bg=colors['bg']).grid(row=0, column=4)
+        tk.Label(self, text='drop end', font=('cambria', 15), fg='white', bg=colors['bg']).grid(row=1, column=4)
+        tk.Label(self, text='key', font=('cambria', 15), fg='white', bg=colors['bg']).grid(row=2, column=4)
 
-        tk.Label(self, textvariable=self.current_dropstart, font=('cambria', 15), fg='white', bg=colors['bg']).grid(row=0, column=4)
-        tk.Label(self, textvariable=self.current_dropend, font=('cambria', 15), fg='white', bg=colors['bg']).grid(row=1, column=4)
-        tk.Label(self, textvariable=self.current_key, font=('cambria', 15), fg='white', bg=colors['bg']).grid(row=2, column=4)
+        tk.Label(self, textvariable=self.current_dropstart, font=('cambria', 15), fg='white', bg=colors['bg']).grid(row=0, column=5)
+        tk.Label(self, textvariable=self.current_dropend, font=('cambria', 15), fg='white', bg=colors['bg']).grid(row=1, column=5)
+        tk.Label(self, textvariable=self.current_key, font=('cambria', 15), fg='white', bg=colors['bg']).grid(row=2, column=5)
 
-        # folder
+        # load file
         img_folder = tk.PhotoImage(file='./images/folder_icon.png')
-        tk.Button(self, command=self.open_folder, bg=colors['bg'], bd=0, image=img_folder).grid(row=4, column=0)
+        tk.Button(self, command=self.load_from_csv, bg=colors['bg'], bd=0, image=img_folder).grid(row=4, column=0)
 
         # saving button
         img_file = tk.PhotoImage(file='./images/file_icon.png')
@@ -199,10 +183,6 @@ class PropertySetter(tk.Tk):
         modes = ('major', 'minor')
         tk.OptionMenu(self, self.current_tone, *keys, command=self.set_key).grid(row=4, column=4)
         tk.OptionMenu(self, self.current_mode, *modes, command=self.set_key).grid(row=4, column=5)
-
-        # set piano
-        img_piano = tk.PhotoImage(file='./images/piano_icon.png')
-        tk.Button(self, command=self.open_piano, bg=colors['bg'], bd=0, image=img_piano).grid(row=0, rowspan=3, column=5)
 
         # previous / play / pause / reset / next buttons
         img_previous = tk.PhotoImage(file='./images/previous_icon.png')
@@ -224,12 +204,30 @@ class PropertySetter(tk.Tk):
 
         return
 
-    def open_folder(self):
+    def new_folder(self):
         # load songs in chosen directory
         self.music_folder = tk.filedialog.askdirectory(initialdir=self.default_music_directory)
+        print(self.music_folder)
         self.song_folder = SongFolder(self.music_folder)
         self.load_song()
         return
+
+    def load_from_csv(self):
+        # determine song_folder
+        csv_path = tk.filedialog.askopenfilename(initialdir=self.default_data_directory, filetypes=[('csv','*.csv')])
+        file_name = csv_path.split('\\')[-1]
+        self.song_folder = file_name.split('_')[1]
+        self.music_folder = self.default_music_directory + self.song_folder
+
+        # open new SongFolder and fill it with csv data
+        self.song_folder = SongFolder(self.music_folder)
+        self.song_folder.songs = self.song_folder.load_songs_from_csv(csv_path)
+
+        # find first song with empty values
+        empty_songs = [song for song in self.song_folder.songs if song.dropstart == 0 or song.dropend == 0 or song.key == 'None']
+        self.song_nr = self.song_folder.songs.index(empty_songs[0])
+        self.load_song()
+        
     
     def load_song(self):
         self.current_song = self.song_folder.songs[self.song_nr]
@@ -483,5 +481,4 @@ class AudioPlayer():
         self.root.canvas.draw_idle()
         self.root.update()
 
-csv_path = r"C:\Users\tuank\Programming\Python\AutoDJ\analysis\songtester\data\analysis_testfolder_20221030-205830.csv"
-tester = PropertySetter(csv_path=csv_path)
+tester = PropertySetter()
