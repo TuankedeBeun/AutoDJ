@@ -1,6 +1,6 @@
 import os
-import plotter
-import audioreader
+from analyser.plotting import plotter
+from analyser.analyse import audioreader
 
 musicFolderPath = 'C:/Users/tuank/Music/Drum & Bass/Drum & Bass 4'
 songlist = os.listdir(musicFolderPath)
