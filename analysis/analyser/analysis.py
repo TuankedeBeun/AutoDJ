@@ -44,7 +44,8 @@ def analyse_song(folder, song, printing=True, plotting=False, play_drop=False):
             value = properties[prop]
             print('%15s: %s' % (prop, value))
         
-    if plotting: song_analyser.plotter.draw_axes()
+    if plotting:
+        song_analyser.plotter.draw_axes()
     
     if play_drop: 
         start = properties['drop_start']['value'] - 4*60/(properties['bpm']['value'])

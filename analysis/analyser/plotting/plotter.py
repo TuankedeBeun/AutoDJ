@@ -83,7 +83,7 @@ class Plotter():
         # draw plots
         for axis, axis_object in zip(axes, self.axis_objects):
             axis_object.draw_plots(axis)
-        self.fig.show()
+        plt.show()
 
 class Animation_plotter():
     def __init__(self, time, xdata, ydata, xlabel, ylabel):
