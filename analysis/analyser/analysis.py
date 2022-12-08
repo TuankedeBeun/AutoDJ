@@ -31,8 +31,10 @@ def analyse_song(folder, song, printing=True, plotting=False, play_drop=False):
     if type(song) == int:
         songlist = os.listdir(folder)
         song_file = songlist[song]
-    else:
+    elif song[-4:] != '.mp3':
         song_file = song + '.mp3'
+    else:
+        song_file = song
     
     song_analyser = AudioAnalyser(folder, song_file)
     properties = song_analyser.get_properties()
@@ -51,13 +53,9 @@ def analyse_song(folder, song, printing=True, plotting=False, play_drop=False):
     
     return properties
 
-def compare_song_to_known_data(csv_path, song_nr):
-    # load known data
-    folder_known = load_data_from_csv(csv_path)
-    song_known = folder_known[song_nr]
-
+def compare_song_to_known_data(csv_path, song_nr, base_path="C:\\Users\\tuank\\Music\\Drum & Bass"):
+    ### analyse song
     # get path to corresponding music folder
-    base_path = "C:\\Users\\tuank\\Music\\Drum & Bass"
     file_name = os.path.basename(csv_path)
     folder_name = file_name.split('_')[1]
     folder_path = os.path.join(base_path, folder_name)
@@ -66,6 +64,11 @@ def compare_song_to_known_data(csv_path, song_nr):
 
     # analyse same song
     song_analysed = analyse_song(folder_path, song_nr, printing=False, plotting=False, play_drop=False)
+
+    ### compare to known data
+    # load known data
+    folder_known = load_data_from_csv(csv_path)
+    song_known = folder_known[song_nr]
 
     # guess bpm from drop start/end
     bpm_guess = calculate_bpm_from_drop(song_known['drop_start'], song_known['drop_end'])
@@ -85,4 +88,45 @@ def compare_song_to_known_data(csv_path, song_nr):
 
     print(tabulate(table, headers='firstrow', tablefmt='fancy_grid'))
 
-    return
+    return table
+
+def analyse_songs_on_bpm(csv_path, base_path="C:\\Users\\tuank\\Music\\Drum & Bass"):
+    ### analyse folder on bpm
+    # get path to corresponding music folder
+    file_name = os.path.basename(csv_path)
+    folder_name = file_name.split('_')[1]
+    folder_path = os.path.join(base_path, folder_name)
+    song_files = os.listdir(folder_path)
+
+    # analyse every song in the folder on bpm
+    bpm_analysed = []
+    for nr, song_file in enumerate(song_files):
+        song_name = song_file.strip('.mp3')
+        print('analysing song number {nr} of {total}: {name}'.format(nr=nr, total=len(song_files), name=song_name))
+        song_analysed = analyse_song(folder_path, song_file, printing=False, plotting=False, play_drop=False) #TODO: need separate function to only get the BPM
+        bpm_analysed.append({song_file.strip('.mp3'): song_analysed['bpm']})
+
+    ### compare with bpm of known data
+    print('loading known data')
+    # load known data
+    folder_known = load_data_from_csv(csv_path)
+
+    # guess bpm from drop start/end
+    bpm_known = []
+    for song_known in folder_known:
+        bpm_guess = calculate_bpm_from_drop(song_known['drop_start'], song_known['drop_end'])
+        bpm_guess = round(bpm_guess, 1)
+        bpm_known.append({song_known['file'].strip('.mp3'): bpm_guess})
+
+    # add results to table
+    print('composing table')
+    table = [['song', 'known', 'analysis']]
+    for song_file in song_files:
+        song_name = song_file.strip('.mp3')
+        table_entry = [song_name, bpm_known[song_name], bpm_analysed[song_name]]
+        table.append(table_entry)
+
+    # print results
+    print(tabulate(table, headers='firstrow', tablefmt='fancy_grid'))
+
+    return table

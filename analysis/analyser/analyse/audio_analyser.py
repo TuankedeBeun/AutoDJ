@@ -53,12 +53,13 @@ class AudioAnalyser():
         key_number, is_major, method = self.find_key(drop_start, bpm)
         tones = ['A','Bb','B','C','C#','D','Eb','E','F','F#','G','G#']
         note = tones[key_number]
-        properties = {'bpm': {'value': bpm, 'reliable': bpm_reliable},
-                      'drop_start': {'value': drop_start, 'estimate': drop_start_estimate, 'reliable': drop_start_reliable},
-                      'drop_end': {'value': drop_end, 'estimate': drop_end_estimate},
-                      'song_start': {'value': song_start},
-                      'key': {'note': note, 'key_number': key_number, 'is_major': is_major, 'method': method}
-                      }
+        properties = {
+            'bpm': {'value': bpm, 'reliable': bpm_reliable},
+            'drop_start': {'value': drop_start, 'estimate': drop_start_estimate, 'reliable': drop_start_reliable},
+            'drop_end': {'value': drop_end, 'estimate': drop_end_estimate},
+            'song_start': {'value': song_start},
+            'key': {'note': note, 'key_number': key_number, 'is_major': is_major, 'method': method}
+        }
         return properties
         
     def estimate_droptime(self, minimal_droplength=30, clustertime=8, resolution=1):
