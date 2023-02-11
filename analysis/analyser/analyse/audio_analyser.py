@@ -39,38 +39,39 @@ def power_history(signal, audiorate, clustertime, resolution=None):
     return time, power_hist
 
 class AudioAnalyser():
-    def __init__(self, song_directory, song_title):
-        print('LOADING SONG')
+    def __init__(self, song_directory, song_title, printing=True):
+        self.printing = printing
+        if self.printing: print('LOADING SONG')
         self.reader = AudioReader(song_directory, song_title)
-        print('TITLE:', song_title)
-        print('DURATION:', self.reader.audiosegment.duration_seconds)
+        if self.printing: print('TITLE:', song_title)
+        if self.printing: print('DURATION:', self.reader.audiosegment.duration_seconds)
         self.plotter = Plotter(song_title, figsize=(16,9), sharex=False)
         
     def get_properties(self):
-        print('\nSTARTING ANALYSIS')
+        if self.printing: print('\nSTARTING ANALYSIS')
         drop_start_estimate, drop_end_estimate = self.estimate_droptime()
-        print('DROP START ESTIMATE:', drop_start_estimate)
-        print('DROP END ESTIMATE:', drop_end_estimate)
+        if self.printing: print('DROP START ESTIMATE:', drop_start_estimate)
+        if self.printing: print('DROP END ESTIMATE:', drop_end_estimate)
 
         bpm_props = self.find_bpm(drop_start_estimate, drop_end_estimate)
         bpm, bpm_reliable, drop_beat, drop_beat_reliable = bpm_props
-        print('BPM:', bpm)
-        print('DROP BEAT:', drop_beat)
+        if self.printing: print('BPM:', bpm)
+        if self.printing: print('DROP BEAT:', drop_beat)
 
         drop_start, drop_start_reliable = self.get_dropstart(drop_beat, bpm)
-        print('DROP START:', drop_start)
+        if self.printing: print('DROP START:', drop_start)
 
         drop_end = self.get_dropend(drop_start, drop_end_estimate, bpm)
-        print('DROP END:', drop_end)
+        if self.printing: print('DROP END:', drop_end)
 
         song_start = self.get_songstart(drop_start, bpm)
-        print('SONG START:', song_start)
+        if self.printing: print('SONG START:', song_start)
 
         key_number, is_major, method = self.find_key(drop_start, bpm)
         tones = ['A','Bb','B','C','C#','D','Eb','E','F','F#','G','G#']
         note = tones[key_number]
         key = note + (not is_major)*'m'
-        print('KEY:', key)
+        if self.printing: print('KEY:', key)
 
         properties = {
             'bpm': {'value': bpm, 'reliable': bpm_reliable},
