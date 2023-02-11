@@ -87,35 +87,40 @@ class AudioAnalyser():
         audiorate = self.reader.audiosegment.frame_rate
         time_ph, power_hist = power_history(audio_np, audiorate, clustertime, resolution)
         
-        # condition 1: threshold slightly lower than highest 20% of power history
+        # condition: above the high threshold (rolling ones for single point exceptions)
         ph_thresh_high = 0.8*np.percentile(power_hist, 90)
-        # find index of start of drop
-        cond_start = power_hist > ph_thresh_high
-        cond_start = cond_start + np.roll(cond_start, -1)
+        cond_high = power_hist > ph_thresh_high
+        cond_high *= np.roll(cond_high, -1)
+
+        # condition: under the low threshold (rolling ones for single point exceptions)
+        ph_thresh_low = 0.8*ph_thresh_high
+        cond_low = power_hist > ph_thresh_low
+        cond_low *= np.roll(cond_low, -1)
         
-        # condition 2: drop is 'minimal_droplength' seconds long
-        minimal_droplength = int(minimal_droplength/resolution)
-        cond_length = cond_start.copy()
-        for i in range(minimal_droplength):
-            cond_length *= np.roll(cond_start, -i)
+        # drop starts above high threshold and ends below lower threshold and is at least 'minimal_droplength' long
+        minimal_drop_clusters = int(minimal_droplength/resolution)
+        cond_start = cond_high.copy()
+        for i in range(minimal_drop_clusters):
+            cond_start *= np.roll(cond_low, -i)
         
-        # drop starts at first index where both conditions satisfy
-        drop_start = np.argmax(cond_length) + 1
-        
-        # find end of drop, at which the intensity is x% lower after minimum drop length
-        ph_thresh_low = 0.9*ph_thresh_high
-        
-        cond_end = power_hist[drop_start + minimal_droplength:] > ph_thresh_low
-        cond_length2 = cond_end + np.roll(cond_end, -1)
-        # if drop never stops, the end is at the end of the song
-        if cond_length2.all():
-            drop_end = cond_length.size - 3 + drop_start + minimal_droplength
+        if not cond_start.any(): # error if no drop start can be found
+            raise Exception('No drop start could be found.')
         else:
-            drop_end = np.argmin(cond_length2) + drop_start + minimal_droplength
+            drop_start_index = np.argmax(cond_start)
+
+        # the drop ends at the first 0 in cond_low after the drop start
+        cond_before_drop_start = np.ones(drop_start_index, dtype=bool)
+        cond_before_drop_start = np.pad(cond_before_drop_start, (0, len(cond_low) - drop_start_index))
+        cond_end = np.invert(cond_before_drop_start + cond_low)
+
+        if not cond_end.any(): # error if drop never stops
+            raise Exception('No drop end could be found.')
+        else:
+            drop_end_index = np.argmax(cond_end)
         
         # convert to timestamps in seconds
-        drop_start = drop_start*resolution
-        drop_end = drop_end*resolution
+        drop_start = drop_start_index*resolution
+        drop_end = drop_end_index*resolution
         
         # plotting
         axis = self.plotter.add_axis('time (s)', 'Global Power')
