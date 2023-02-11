@@ -38,11 +38,11 @@ class Plotter_axis():
                 axis.set_xticks(x_ticks)
                 axis.set_xticklabels(x)
             elif plottype == 'hline':
-                color = cm.rainbow(self.linecounter*0.618 % 1)
+                color = cm.hsv(self.linecounter*0.618 % 1)
                 self.linecounter += 1
                 axis.axhline(y=y, xmin=x[0], xmax=x[1], label=label, ls='--', c=color, alpha=0.5)
             elif plottype == 'vline':
-                color = cm.rainbow(self.linecounter*0.618 % 1)
+                color = cm.hsv(self.linecounter*0.618 % 1)
                 self.linecounter += 1
                 axis.axvline(x=x, ymin=y[0], ymax=y[1], label=label, ls='--', c=color, alpha=0.5)
         
@@ -53,7 +53,7 @@ class Plotter_axis():
         axis.tick_params(axis='both', colors='w', labelsize=10)
         for spine in axis.spines: axis.spines[spine].set_color('w')
         if self.Nplots > 1: 
-            legend = axis.legend(fontsize=7, facecolor='#222222')
+            legend = axis.legend(loc='upper right', fontsize=7, facecolor='#222222')
             for text in legend.get_texts(): text.set_color('w')
         
 class Plotter():
