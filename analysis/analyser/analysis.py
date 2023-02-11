@@ -11,16 +11,18 @@ from analyser.common.key_conversion import from_keynumber_to_key
 def analyse_folder(folder):
     # initialize dictionary csv writer
     last_folder = os.path.split(folder)[-1]
-    csv_file_name = 'analysis_' + last_folder + strftime("%d%b%YT%H:%M", localtime())
+    csv_file_name = 'analysis_' + last_folder + strftime("%d%b%YT%H%M", localtime()) + '.csv'
+    print(csv_file_name)
     song_properties = ['bpm', 'bpm_reliable','drop_start', 'drop_end', 'song_start', 'key', 'modus']
-    file = open('data/' + csv_file_name)
+    file = open(os.path.join(os.getcwd(), 'analyser\\data', csv_file_name), mode='w')
     writer = csv.DictWriter(file, fieldnames=song_properties)
     writer.writeheader()
     
     # extract song properties for every song in the given folder
     songs = os.listdir(folder)
-    for song in songs:
-        song_analyser = AudioAnalyser(folder, song)
+    for nr, song in enumerate(songs[:5]):
+        print('analysing song number {nr} of {total}: {name}'.format(nr=nr, total=len(songs), name=song[:-4]))
+        song_analyser = AudioAnalyser(folder, song, printing=False)
         properties = song_analyser.get_properties()
         writer.writerow(properties)
         
