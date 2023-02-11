@@ -88,25 +88,25 @@ class AudioAnalyser():
         time_ph, power_hist = power_history(audio_np, audiorate, clustertime, resolution)
         
         # condition 1: threshold slightly lower than highest 20% of power history
-        P_thres = 0.8*np.percentile(power_hist, 90)
+        ph_thresh_high = 0.8*np.percentile(power_hist, 90)
         # find index of start of drop
-        cond_Pthres = power_hist > P_thres
-        cond_Pthres = cond_Pthres + np.roll(cond_Pthres, -1)
+        cond_start = power_hist > ph_thresh_high
+        cond_start = cond_start + np.roll(cond_start, -1)
         
         # condition 2: drop is 'minimal_droplength' seconds long
         minimal_droplength = int(minimal_droplength/resolution)
-        cond_length = cond_Pthres.copy()
+        cond_length = cond_start.copy()
         for i in range(minimal_droplength):
-            cond_length *= np.roll(cond_Pthres, -i)
+            cond_length *= np.roll(cond_start, -i)
         
         # drop starts at first index where both conditions satisfy
         drop_start = np.argmax(cond_length) + 1
         
         # find end of drop, at which the intensity is x% lower after minimum drop length
-        P_thres2 = 0.9*P_thres
+        ph_thresh_low = 0.9*ph_thresh_high
         
-        cond_Pthres2 = power_hist[drop_start + minimal_droplength:] > P_thres2
-        cond_length2 = cond_Pthres2 + np.roll(cond_Pthres2, -1)
+        cond_end = power_hist[drop_start + minimal_droplength:] > ph_thresh_low
+        cond_length2 = cond_end + np.roll(cond_end, -1)
         # if drop never stops, the end is at the end of the song
         if cond_length2.all():
             drop_end = cond_length.size - 3 + drop_start + minimal_droplength
@@ -120,8 +120,8 @@ class AudioAnalyser():
         # plotting
         axis = self.plotter.add_axis('time (s)', 'Global Power')
         axis.add_plot(time_ph, power_hist, 'plot', 'power history')
-        axis.add_plot( (0, self.reader.audiosegment.duration_seconds), P_thres, 'hline', 'threshold start')
-        axis.add_plot( (0, self.reader.audiosegment.duration_seconds), P_thres2, 'hline', 'threshold end')
+        axis.add_plot( (0, self.reader.audiosegment.duration_seconds), ph_thresh_high, 'hline', 'threshold start')
+        axis.add_plot( (0, self.reader.audiosegment.duration_seconds), ph_thresh_low, 'hline', 'threshold end')
         axis.add_plot( drop_start, (0, power_hist.max()), 'vline', 'drop start estimate')
         axis.add_plot( drop_end, (0, power_hist.max()), 'vline', 'drop end estimate')
         
