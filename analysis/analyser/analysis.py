@@ -21,7 +21,7 @@ def analyse_folder(folder):
     songs = os.listdir(folder)
     for nr, song in enumerate(songs):
         print('analysing song number {nr} of {total}: {name}'.format(nr=nr, total=len(songs), name=song[:-4]))
-        song_analyser = AudioAnalyser(folder, song, printing=False)
+        song_analyser = AudioAnalyser(folder, song, printing=False, plotting=False)
         properties = song_analyser.get_properties()
         key = properties['key']['note'] + (not properties['key']['is_major'])*'m'
         filtered_properties = {

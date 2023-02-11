@@ -39,13 +39,18 @@ def power_history(signal, audiorate, clustertime, resolution=None):
     return time, power_hist
 
 class AudioAnalyser():
-    def __init__(self, song_directory, song_title, printing=True):
+    def __init__(self, song_directory, song_title, printing=True, plotting=True):
         self.printing = printing
-        if self.printing: print('LOADING SONG')
+        self.plotting = plotting
+
         self.reader = AudioReader(song_directory, song_title)
-        if self.printing: print('TITLE:', song_title)
-        if self.printing: print('DURATION:', self.reader.audiosegment.duration_seconds)
-        self.plotter = Plotter(song_title, figsize=(16,9), sharex=False)
+        if self.printing: 
+            print('LOADING SONG')
+            print('TITLE:', song_title)
+            print('DURATION:', self.reader.audiosegment.duration_seconds)
+
+        if plotting:
+            self.plotter = Plotter(song_title, figsize=(16,9), sharex=False)
         
     def get_properties(self):
         if self.printing: print('\nSTARTING ANALYSIS')
@@ -124,12 +129,13 @@ class AudioAnalyser():
         drop_end = drop_end_index*resolution
         
         # plotting
-        axis = self.plotter.add_axis('time (s)', 'Global Power')
-        axis.add_plot(time_ph, power_hist, 'plot', 'power history')
-        axis.add_plot( (0, self.reader.audiosegment.duration_seconds), ph_thresh_high, 'hline', 'threshold start')
-        axis.add_plot( (0, self.reader.audiosegment.duration_seconds), ph_thresh_low, 'hline', 'threshold end')
-        axis.add_plot( drop_start, (0, power_hist.max()), 'vline', 'drop start estimate')
-        axis.add_plot( drop_end, (0, power_hist.max()), 'vline', 'drop end estimate')
+        if self.plotting:
+            axis = self.plotter.add_axis('time (s)', 'Global Power')
+            axis.add_plot(time_ph, power_hist, 'plot', 'power history')
+            axis.add_plot( (0, self.reader.audiosegment.duration_seconds), ph_thresh_high, 'hline', 'threshold start')
+            axis.add_plot( (0, self.reader.audiosegment.duration_seconds), ph_thresh_low, 'hline', 'threshold end')
+            axis.add_plot( drop_start, (0, power_hist.max()), 'vline', 'drop start estimate')
+            axis.add_plot( drop_end, (0, power_hist.max()), 'vline', 'drop end estimate')
         
         return drop_start, drop_end
 
@@ -200,9 +206,10 @@ class AudioAnalyser():
         beat_time = drop_snare + dt
         
         # plotting
-        axis = self.plotter.add_axis('BPM', 'resonance')
-        axis.add_plot(resonance_BPMs, resonance_vals, 'plot', 'resonance')
-        axis.add_plot(resonance_BPMs[BPM_peaks], resonance_vals[BPM_peaks]*PH.max()/resonance_vals.max(), 'plot', 'peaks')
+        if self.plotting:
+            axis = self.plotter.add_axis('BPM', 'resonance')
+            axis.add_plot(resonance_BPMs, resonance_vals, 'plot', 'resonance')
+            axis.add_plot(resonance_BPMs[BPM_peaks], resonance_vals[BPM_peaks]*PH.max()/resonance_vals.max(), 'plot', 'peaks')
         
         return BPM, BPM_reliable, beat_time, beat_reliable
     
@@ -248,31 +255,32 @@ class AudioAnalyser():
             drop_reliable = False
             
         # plotting
-        Ndivisions = 8
-        time_bass_division, powerhistory_bass_division = power_history(bass_np, audiorate, dt/Ndivisions)
-        Nframes2 = 4*Nbars*Ndivisions
-        # in case the number of frames is not right
-        if powerhistory_bass_division.size > Nframes2:
-            powerhistory_bass_division = powerhistory_bass_division[:Nframes2]
-        elif powerhistory_bass_division.size < Nframes2:
-            short = Nframes2 - powerhistory_bass_division.size
-            powerhistory_bass_division = np.append(powerhistory_bass_division, np.zeros(short))
-        
-        axis = self.plotter.add_axis('time (s)', 'bass')
-        axis.add_plot(start + time_bass, powerhistory_bass, 'plot', 'bass')
-        
-        ph_bass_div_norm = powerhistory_bass_division*(powerhistory_bass.max()/powerhistory_bass_division.max())
-        axis.add_plot(start + time_bass_division, ph_bass_div_norm, 'plot', 'bass div')
-        
-        time_criterium = np.linspace(start, end, criterium.size + 1)
-        criterium_norm = criterium*powerhistory_bass.max()/criterium.max()
-        axis.add_plot(time_criterium[:-1], criterium_norm, 'histogram', 'criterium')
-        
-        axis.add_plot(t_drop_start, (0, 1), 'vline', 'start exact')
-        
-        # plotting in global axis
-        global_axis = self.plotter.axis_objects[0]
-        global_axis.add_plot(t_drop_start, (0, 1), 'vline', 'start exact')
+        if self.plotting:
+            Ndivisions = 8
+            time_bass_division, powerhistory_bass_division = power_history(bass_np, audiorate, dt/Ndivisions)
+            Nframes2 = 4*Nbars*Ndivisions
+            # in case the number of frames is not right
+            if powerhistory_bass_division.size > Nframes2:
+                powerhistory_bass_division = powerhistory_bass_division[:Nframes2]
+            elif powerhistory_bass_division.size < Nframes2:
+                short = Nframes2 - powerhistory_bass_division.size
+                powerhistory_bass_division = np.append(powerhistory_bass_division, np.zeros(short))
+            
+            axis = self.plotter.add_axis('time (s)', 'bass')
+            axis.add_plot(start + time_bass, powerhistory_bass, 'plot', 'bass')
+            
+            ph_bass_div_norm = powerhistory_bass_division*(powerhistory_bass.max()/powerhistory_bass_division.max())
+            axis.add_plot(start + time_bass_division, ph_bass_div_norm, 'plot', 'bass div')
+            
+            time_criterium = np.linspace(start, end, criterium.size + 1)
+            criterium_norm = criterium*powerhistory_bass.max()/criterium.max()
+            axis.add_plot(time_criterium[:-1], criterium_norm, 'histogram', 'criterium')
+            
+            axis.add_plot(t_drop_start, (0, 1), 'vline', 'start exact')
+            
+            # plotting in global axis
+            global_axis = self.plotter.axis_objects[0]
+            global_axis.add_plot(t_drop_start, (0, 1), 'vline', 'start exact')
 
         return t_drop_start, drop_reliable
 
@@ -282,8 +290,9 @@ class AudioAnalyser():
         drop_end = drop_start + Ndropbars*64*dt
         
         # plotting
-        global_axis = self.plotter.axis_objects[0]
-        global_axis.add_plot(drop_end, (0, 1), 'vline', 'end exact')
+        if self.plotting:
+            global_axis = self.plotter.axis_objects[0]
+            global_axis.add_plot(drop_end, (0, 1), 'vline', 'end exact')
         return drop_end
     
     def get_songstart(self, drop_start, bpm):
@@ -384,9 +393,10 @@ class AudioAnalyser():
         major = (major_val > minor_val)
         
         # plotting
-        axis = self.plotter.add_axis('tone', 'intensity')
-        axis.add_plot(tones, dft_summed, 'tones', 'summed')
-        for i in range(Noctaves):
-            axis.add_plot(tones, dft_stack[i], 'tones', 'octave %d' % i)
+        if self.plotting:
+            axis = self.plotter.add_axis('tone', 'intensity')
+            axis.add_plot(tones, dft_summed, 'tones', 'summed')
+            for i in range(Noctaves):
+                axis.add_plot(tones, dft_stack[i], 'tones', 'octave %d' % i)
         
         return key_number, major, method
