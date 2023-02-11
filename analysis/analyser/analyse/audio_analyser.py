@@ -40,19 +40,38 @@ def power_history(signal, audiorate, clustertime, resolution=None):
 
 class AudioAnalyser():
     def __init__(self, song_directory, song_title):
+        print('LOADING SONG')
         self.reader = AudioReader(song_directory, song_title)
+        print('TITLE:', song_title)
+        print('DURATION:', self.reader.audiosegment.duration_seconds)
         self.plotter = Plotter(song_title, figsize=(16,9), sharex=False)
         
     def get_properties(self):
+        print('\nSTARTING ANALYSIS')
         drop_start_estimate, drop_end_estimate = self.estimate_droptime()
+        print('DROP START ESTIMATE:', drop_start_estimate)
+        print('DROP END ESTIMATE:', drop_end_estimate)
+
         bpm_props = self.find_bpm(drop_start_estimate, drop_end_estimate)
-        bpm, bpm_reliable, dropbeat, beat_reliable = bpm_props
-        drop_start, drop_start_reliable = self.get_dropstart(dropbeat, bpm)
+        bpm, bpm_reliable, drop_beat, drop_beat_reliable = bpm_props
+        print('BPM:', bpm)
+        print('DROP BEAT:', drop_beat)
+
+        drop_start, drop_start_reliable = self.get_dropstart(drop_beat, bpm)
+        print('DROP START:', drop_start)
+
         drop_end = self.get_dropend(drop_start, drop_end_estimate, bpm)
+        print('DROP END:', drop_end)
+
         song_start = self.get_songstart(drop_start, bpm)
+        print('SONG START:', song_start)
+
         key_number, is_major, method = self.find_key(drop_start, bpm)
         tones = ['A','Bb','B','C','C#','D','Eb','E','F','F#','G','G#']
         note = tones[key_number]
+        key = note + (not is_major)*'m'
+        print('KEY:', key)
+
         properties = {
             'bpm': {'value': bpm, 'reliable': bpm_reliable},
             'drop_start': {'value': drop_start, 'estimate': drop_start_estimate, 'reliable': drop_start_reliable},
@@ -62,7 +81,7 @@ class AudioAnalyser():
         }
         return properties
         
-    def estimate_droptime(self, minimal_droplength=30, clustertime=8, resolution=1):
+    def estimate_droptime(self, minimal_droplength=25, clustertime=8, resolution=1):
         # clustertime is the length of a power history block in seconds
         t, audio_np = to_nparray(self.reader.audiosegment)
         audiorate = self.reader.audiosegment.frame_rate
@@ -117,6 +136,9 @@ class AudioAnalyser():
         # take a scanning region
         start_scan = int(1000*(scanning_point))
         end_scan = int(1000*(scanning_point + Nbars*4*60/160))
+        if end_scan > self.reader.audiosegment.duration_seconds*1000:
+            raise Exception('The end of the scanning region is past the end of the song.')
+
         segment_scan = self.reader.audiosegment[start_scan:end_scan].high_pass_filter(hpf)
         t, array_scan = to_nparray(segment_scan)
         t, powerhistory_scan = power_history(array_scan, audiorate, clustertime, resolution)

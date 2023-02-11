@@ -27,7 +27,7 @@ def analyse_folder(folder):
     file.close()
     return
 
-def analyse_song(folder, song, printing=True, plotting=False, play_drop=False):
+def analyse_song(folder, song, plotting=False, play_drop=False):
     if type(song) == int:
         songlist = os.listdir(folder)
         song_file = songlist[song]
@@ -38,11 +38,6 @@ def analyse_song(folder, song, printing=True, plotting=False, play_drop=False):
     
     song_analyser = AudioAnalyser(folder, song_file)
     properties = song_analyser.get_properties()
-    
-    if printing:
-        for prop in properties.keys():
-            value = properties[prop]
-            print('%15s: %s' % (prop, value))
         
     if plotting:
         song_analyser.plotter.draw_axes()
