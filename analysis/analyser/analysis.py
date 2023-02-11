@@ -12,19 +12,28 @@ def analyse_folder(folder):
     # initialize dictionary csv writer
     last_folder = os.path.split(folder)[-1]
     csv_file_name = 'analysis_' + last_folder + strftime("%d%b%YT%H%M", localtime()) + '.csv'
-    print(csv_file_name)
-    song_properties = ['bpm', 'bpm_reliable','drop_start', 'drop_end', 'song_start', 'key', 'modus']
-    file = open(os.path.join(os.getcwd(), 'analyser\\data', csv_file_name), mode='w')
+    song_properties = ['bpm','drop_start', 'drop_end', 'song_start', 'key', 'key_number', 'is_major']
+    file = open(os.path.join(os.getcwd(), 'analyser\\data', csv_file_name), newline='', mode='w')
     writer = csv.DictWriter(file, fieldnames=song_properties)
     writer.writeheader()
     
     # extract song properties for every song in the given folder
     songs = os.listdir(folder)
-    for nr, song in enumerate(songs[:5]):
+    for nr, song in enumerate(songs):
         print('analysing song number {nr} of {total}: {name}'.format(nr=nr, total=len(songs), name=song[:-4]))
         song_analyser = AudioAnalyser(folder, song, printing=False)
         properties = song_analyser.get_properties()
-        writer.writerow(properties)
+        key = properties['key']['note'] + (not properties['key']['is_major'])*'m'
+        filtered_properties = {
+            'bpm': properties['bpm']['value'],
+            'drop_start': properties['drop_start']['value'],
+            'drop_end': properties['drop_end']['value'],
+            'song_start': properties['song_start']['value'],
+            'key': key,
+            'key_number': properties['key']['key_number'],
+            'is_major': properties['key']['is_major']
+        }
+        writer.writerow(filtered_properties)
         
     file.close()
     return

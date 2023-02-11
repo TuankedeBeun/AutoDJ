@@ -68,7 +68,7 @@ class SongFolder():
         return songs
 
     def save(self):
-        csv_file = open(self.datafilepath, mode='w')
+        csv_file = open(self.datafilepath, newline='', mode='w')
         writer = csv.writer(csv_file, delimiter=';')
 
         writer.writerow(self.header)
