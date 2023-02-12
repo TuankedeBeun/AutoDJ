@@ -12,7 +12,7 @@ def analyse_folder(folder):
     # initialize dictionary csv writer
     last_folder = os.path.split(folder)[-1]
     csv_file_name = 'analysis_' + last_folder + strftime("%d%b%YT%H%M", localtime()) + '.csv'
-    song_properties = ['bpm','drop_start', 'drop_end', 'song_start', 'key', 'key_number', 'is_major']
+    song_properties = ['nr','song','bpm','drop_start', 'drop_end', 'song_start', 'key', 'key_number', 'is_major']
     file = open(os.path.join(os.getcwd(), 'data', csv_file_name), newline='', mode='w')
     writer = csv.DictWriter(file, fieldnames=song_properties)
     writer.writeheader()
