@@ -26,6 +26,8 @@ def analyse_folder(folder):
             properties = song_analyser.get_properties()
             key = properties['key']['note'] + (not properties['key']['is_major'])*'m'
             filtered_properties = {
+                'nr': nr,
+                'song': song,
                 'bpm': properties['bpm']['value'],
                 'drop_start': properties['drop_start']['value'],
                 'drop_end': properties['drop_end']['value'],
@@ -38,6 +40,8 @@ def analyse_folder(folder):
             print(e)
             print('Setting properties to "NOT_FOUND"')
             filtered_properties = {
+                'nr': nr,
+                'song': song,
                 'bpm': 'NOT_FOUND',
                 'drop_start': 'NOT_FOUND',
                 'drop_end': 'NOT_FOUND',
