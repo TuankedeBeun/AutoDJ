@@ -2,11 +2,11 @@ import os
 import csv
 from time import strftime, localtime
 from tabulate import tabulate
-from analyser.analyse.audio_analyser import AudioAnalyser
-from analyser.player.songplayer import play_song
-from analyser.common.load_data import load_data_from_csv
-from analyser.common.bpm import calculate_bpm_from_drop
-from analyser.common.key_conversion import from_keynumber_to_key
+from analyse.audio_analyser import AudioAnalyser
+from player.songplayer import play_song
+from common.load_data import load_data_from_csv
+from common.bpm import calculate_bpm_from_drop
+from common.key_conversion import from_keynumber_to_key
 
 def analyse_folder(folder):
     # initialize dictionary csv writer
@@ -21,18 +21,32 @@ def analyse_folder(folder):
     songs = os.listdir(folder)
     for nr, song in enumerate(songs):
         print('analysing song number {nr} of {total}: {name}'.format(nr=nr, total=len(songs), name=song[:-4]))
-        song_analyser = AudioAnalyser(folder, song, printing=False, plotting=False)
-        properties = song_analyser.get_properties()
-        key = properties['key']['note'] + (not properties['key']['is_major'])*'m'
-        filtered_properties = {
-            'bpm': properties['bpm']['value'],
-            'drop_start': properties['drop_start']['value'],
-            'drop_end': properties['drop_end']['value'],
-            'song_start': properties['song_start']['value'],
-            'key': key,
-            'key_number': properties['key']['key_number'],
-            'is_major': properties['key']['is_major']
-        }
+        try:
+            song_analyser = AudioAnalyser(folder, song, printing=False, plotting=False)
+            properties = song_analyser.get_properties()
+            key = properties['key']['note'] + (not properties['key']['is_major'])*'m'
+            filtered_properties = {
+                'bpm': properties['bpm']['value'],
+                'drop_start': properties['drop_start']['value'],
+                'drop_end': properties['drop_end']['value'],
+                'song_start': properties['song_start']['value'],
+                'key': key,
+                'key_number': properties['key']['key_number'],
+                'is_major': properties['key']['is_major']
+            }
+        except Exception as e:
+            print(e)
+            print('Setting properties to "NOT_FOUND"')
+            filtered_properties = {
+                'bpm': 'NOT_FOUND',
+                'drop_start': 'NOT_FOUND',
+                'drop_end': 'NOT_FOUND',
+                'song_start': 'NOT_FOUND',
+                'key': 'NOT_FOUND',
+                'key_number': 'NOT_FOUND',
+                'is_major': 'NOT_FOUND'
+            }
+
         writer.writerow(filtered_properties)
         
     file.close()

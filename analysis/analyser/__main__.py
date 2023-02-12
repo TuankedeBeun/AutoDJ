@@ -1,4 +1,4 @@
-from analyser import analysis
+import analysis_functions
 
 if __name__ == '__main__':
     # properties = analysis.analyse_song(r"C:\Users\tuank\Music\Drum & Bass\testfolder", 6, play_drop=False, plotting=True)

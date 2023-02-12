@@ -1,8 +1,8 @@
 import numpy as np
 from scipy.signal import find_peaks, gaussian
 from pydub.effects import low_pass_filter, high_pass_filter
-from analyser.plotting.plotter import Plotter
-from analyser.analyse.audioreader import AudioReader, to_nparray, audio_np_section
+from plotting.plotter import Plotter
+from analyse.audioreader import AudioReader, to_nparray, audio_np_section
 
 ### Revised version ###
 def power_history(signal, audiorate, clustertime, resolution=None):
