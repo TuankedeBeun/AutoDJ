@@ -34,7 +34,7 @@ class SongFolder():
             date = strftime("%Y%m%d-%H%M%S")
         )
         self.datafilepath = self.datafolder + '/' + filename_formatted
-        self.header = ["song_path", "drop start", "drop end", "key"]
+        self.header = ["song_path", "drop_start", "drop_end", "key"]
 
     def load_songs(self):
         song_file_names = os.listdir(self.folderpath)
@@ -55,8 +55,8 @@ class SongFolder():
         songs = []
 
         for song_data in dict_reader:
-            drop_start = float(song_data['drop start'])
-            drop_end = float(song_data['drop end'])
+            drop_start = float(song_data['drop_start'])
+            drop_end = float(song_data['drop_end'])
             if song_data['key'] == 'None':
                 key = None
             else:
