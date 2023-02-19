@@ -14,7 +14,7 @@ def load_data_from_csv(csv_path):
             key = song_data['key']
 
         song = {
-            'file': song_data['song_path'],
+            'file': song_data['song'],
             'drop_start': drop_start,
             'drop_end': drop_end,
             'key': key

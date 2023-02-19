@@ -32,7 +32,7 @@ class AudioReader():
         self.song = song_title
         self.audiosegment = self.load_song(song_title)
     
-    def load_song(self, song):
+    def load_song(self):
         # reads mp3 file and converts it into pydub's AudioSegment datatype
         song_path = self.directory + self.song
         if(not song_path.endswith('.mp3')):

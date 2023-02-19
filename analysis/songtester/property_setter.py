@@ -34,7 +34,7 @@ class SongFolder():
             date = strftime("%Y%m%d-%H%M%S")
         )
         self.datafilepath = self.datafolder + '/' + filename_formatted
-        self.header = ["song_path", "drop_start", "drop_end", "key"]
+        self.header = ["song", "drop_start", "drop_end", "key"]
 
     def load_songs(self):
         song_file_names = os.listdir(self.folderpath)
@@ -62,7 +62,7 @@ class SongFolder():
             else:
                 key = song_data['key']
 
-            song = Song(self.folderpath, song_data['song_path'], drop_start, drop_end, key)
+            song = Song(self.folderpath, song_data['song'], drop_start, drop_end, key)
             songs.append(song)
 
         return songs
