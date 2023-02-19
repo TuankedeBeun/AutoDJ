@@ -12,5 +12,5 @@ table = [
     ['key', results['key']['mean'], results['key']['stdev']]
 ]
 print('')
-print(tabulate(table, headers=('property', 'mean', 'st. dev.')))
+print(tabulate(table, headers=('property', 'mean', 'st. dev.'), tablefmt='simple_grid'))
 print('')
