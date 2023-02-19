@@ -1,12 +1,13 @@
 import os
 import csv
+import numpy as np
 from time import strftime, localtime
 from tabulate import tabulate
 from analyse.audio_analyser import AudioAnalyser
 from player.songplayer import play_song
 from common.load_data import load_data_from_csv
 from common.bpm import calculate_bpm_from_drop
-from common.key_conversion import from_keynumber_to_key
+from common.key_conversion import from_key_to_circle_of_fifths
 
 def analyse_folder(folder):
     # initialize dictionary csv writer
@@ -78,80 +79,63 @@ def analyse_song(folder, song, plotting=False, play_drop=False, printing=True):
     
     return properties
 
-def compare_song_to_known_data(csv_path, song_nr, base_path="C:\\Users\\tuank\\Music\\Drum & Bass"):
-    ### analyse song
-    # get path to corresponding music folder
-    file_name = os.path.basename(csv_path)
-    folder_name = file_name.split('_')[1]
-    folder_path = os.path.join(base_path, folder_name)
-    song_name = os.listdir(folder_path)[song_nr].strip('.mp3')
-    print(song_name)
+def load_csv_data(csv_file):
+    # Reads the properties ("drop_start", "drop_end", "key") from a csv file
+    # The output is a 2D numpy array with dimensions (Nsongs x 3)
 
-    # analyse same song
-    song_analysed = analyse_song(folder_path, song_nr, printing=False, plotting=False, play_drop=False)
+    song_data = np.array([])
 
-    ### compare to known data
-    # load known data
-    folder_known = load_data_from_csv(csv_path)
-    song_known = folder_known[song_nr]
+    with open(csv_file, 'r') as f:
+        reader = csv.DictReader(f)
 
-    # guess bpm from drop start/end
-    bpm_guess = calculate_bpm_from_drop(song_known['drop_start'], song_known['drop_end'])
-    bpm_guess = round(bpm_guess, 1)
+        drop_start_index = reader.fieldnames.index('drop_start')
+        drop_end_index = reader.fieldnames.index('drop_end')
+        key_index = reader.fieldnames.index('key')
 
-    # calculate key_number
-    key_analysed = from_keynumber_to_key(song_analysed['key']['key_number'], song_analysed['key']['is_major'])
+        for row in reader:
+            circle_of_fifths_nr = from_key_to_circle_of_fifths(row[key_index])
+            song_data = np.append(song_data, np.array([row[drop_start_index], row[drop_end_index], circle_of_fifths_nr]))
 
-    # print results
-    table = [
-        ['property', 'known', 'analysis'], 
-        ['drop_start', song_known['drop_start'], song_analysed['drop_start']['value']],
-        ['drop_end', song_known['drop_end'], song_analysed['drop_end']['value']],
-        ['bpm', bpm_guess, song_analysed['bpm']['value']],
-        ['key', song_known['key'], key_analysed]
-    ]
+        song_data = song_data.reshape(-1,3)
 
-    print(tabulate(table, headers='firstrow', tablefmt='fancy_grid'))
+    return song_data
 
-    return table
+def data_analysis(csv_path_known, csv_path_computed):
+    # for every property (drop start, drop end, key) measure the mean and the standard deviation
+    # outputs the results in a dictionary
 
-def analyse_songs_on_bpm(csv_path, base_path="C:\\Users\\tuank\\Music\\Drum & Bass"):
-    ### analyse folder on bpm
-    # get path to corresponding music folder
-    file_name = os.path.basename(csv_path)
-    folder_name = file_name.split('_')[1]
-    folder_path = os.path.join(base_path, folder_name)
-    song_files = os.listdir(folder_path)
+    results = {
+        'song_start' : {
+            'mean' : 0,
+            'stdev' : 0
+        },
+        'song_end' : {
+            'mean' : 0,
+            'stdev' : 0
+        },
+        'key' : {
+            'mean' : 0,
+            'stdev' : 0
+        }
+    }
 
-    # analyse every song in the folder on bpm
-    bpm_analysed = []
-    for nr, song_file in enumerate(song_files):
-        song_name = song_file.strip('.mp3')
-        print('analysing song number {nr} of {total}: {name}'.format(nr=nr, total=len(song_files), name=song_name))
-        song_analysed = analyse_song(folder_path, song_file, printing=False, plotting=False, play_drop=False) #TODO: need separate function to only get the BPM
-        bpm_analysed.append({song_file.strip('.mp3'): song_analysed['bpm']})
+    data_known = load_csv_data(csv_path_known)
+    data_computed = load_csv_data(csv_path_computed)
 
-    ### compare with bpm of known data
-    print('loading known data')
-    # load known data
-    folder_known = load_data_from_csv(csv_path)
+    # analyse drop_start
+    drop_start_diff = data_computed[:, 0] - data_known[:, 0]
+    results['song_start']['mean'] = np.mean(drop_start_diff)
+    results['song_start']['stdev'] = np.std(drop_start_diff)
+    
+    # analyse drop_end
+    drop_end_diff = data_computed[:, 1] - data_known[:, 1]
+    results['song_start']['mean'] = np.mean(drop_end_diff)
+    results['song_start']['stdev'] = np.std(drop_end_diff)
 
-    # guess bpm from drop start/end
-    bpm_known = []
-    for song_known in folder_known:
-        bpm_guess = calculate_bpm_from_drop(song_known['drop_start'], song_known['drop_end'])
-        bpm_guess = round(bpm_guess, 1)
-        bpm_known.append({song_known['file'].strip('.mp3'): bpm_guess})
+    # analyse key
+    key_diff = data_computed[:, 2] - data_known[:,2]
+    key_within_bounds = ((key_diff + 6) % 12) - 6
+    results['key']['mean'] = np.mean(key_within_bounds)
+    results['key']['stdev'] = np.std(key_within_bounds)
 
-    # add results to table
-    print('composing table')
-    table = [['song', 'known', 'analysis']]
-    for song_file in song_files:
-        song_name = song_file.strip('.mp3')
-        table_entry = [song_name, bpm_known[song_name], bpm_analysed[song_name]]
-        table.append(table_entry)
-
-    # print results
-    print(tabulate(table, headers='firstrow', tablefmt='fancy_grid'))
-
-    return table
+    return results
