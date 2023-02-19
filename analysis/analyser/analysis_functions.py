@@ -2,12 +2,9 @@ import os
 import csv
 import numpy as np
 from time import strftime, localtime
-from tabulate import tabulate
 from analyse.audio_analyser import AudioAnalyser
 from player.songplayer import play_song
-from common.load_data import load_data_from_csv
-from common.bpm import calculate_bpm_from_drop
-from common.key_conversion import from_key_to_circle_of_fifths
+from common.load_data import load_csv_data_to_nparray
 
 def analyse_folder(folder):
     # initialize dictionary csv writer
@@ -79,32 +76,6 @@ def analyse_song(folder, song, plotting=False, play_drop=False, printing=True):
     
     return properties
 
-def load_csv_data(csv_file):
-    # Reads the properties ("drop_start", "drop_end", "key") from a csv file
-    # The output is a 2D numpy array with dimensions (Nsongs x 3)
-
-    song_data = np.array([])
-
-    with open(csv_file, 'r') as f:
-        reader = csv.DictReader(f, delimiter=';')
-
-        # drop_start_index = reader.fieldnames.index('drop_start')
-        # drop_end_index = reader.fieldnames.index('drop_end')
-        # key_index = reader.fieldnames.index('key')
-
-        for row in reader:
-            if row['key'] == 'NOT_FOUND':
-                print('Song {title} has undetermined properties, so its properties will be set to "-1"'.format(title=row['song']))
-                song_data = np.append(song_data, np.array([-1, -1, -1]))
-                continue
-
-            circle_of_fifths_nr = from_key_to_circle_of_fifths(row['key'])
-            song_data = np.append(song_data, np.array([float(row['drop_start']), float(row['drop_end']), circle_of_fifths_nr]))
-
-        song_data = song_data.reshape(-1,3)
-
-    return song_data
-
 def data_analysis(csv_path_known, csv_path_computed):
     # for every property (drop start, drop end, key) measure the mean and the standard deviation
     # outputs the results in a dictionary
@@ -125,8 +96,8 @@ def data_analysis(csv_path_known, csv_path_computed):
     }
 
     # load csv data
-    data_known = load_csv_data(csv_path_known)
-    data_computed = load_csv_data(csv_path_computed)
+    data_known = load_csv_data_to_nparray(csv_path_known)
+    data_computed = load_csv_data_to_nparray(csv_path_computed)
 
     # make sure uncharacterized songs are removed from both lists
     defined_rows = (data_computed != (-1, -1, -1))
