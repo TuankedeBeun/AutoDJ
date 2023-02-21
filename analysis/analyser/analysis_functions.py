@@ -1,10 +1,12 @@
 import os
 import csv
 import numpy as np
+import matplotlib.pyplot as plt
 from time import strftime, localtime
 from analyse.audio_analyser import AudioAnalyser
 from player.songplayer import play_song
 from common.load_data import load_csv_data_to_nparray
+from common.scoring import assign_score_to_offset
 
 def analyse_folder(folder):
     # initialize dictionary csv writer
@@ -108,16 +110,28 @@ def data_analysis(csv_path_known, csv_path_computed):
     drop_start_diff = data_computed[:, 0] - data_known[:, 0]
     results['drop_start']['mean'] = np.mean(drop_start_diff)
     results['drop_start']['stdev'] = np.std(drop_start_diff)
+    drop_start_scores = assign_score_to_offset(drop_start_diff)
     
     # analyse drop_end
     drop_end_diff = data_computed[:, 1] - data_known[:, 1]
     results['drop_end']['mean'] = np.mean(drop_end_diff)
     results['drop_end']['stdev'] = np.std(drop_end_diff)
+    drop_end_scores = assign_score_to_offset(drop_end_diff)
 
     # analyse key
     key_diff = data_computed[:, 2] - data_known[:, 2]
     key_within_bounds = ((key_diff + 6) % 12) - 6
     results['key']['mean'] = np.mean(key_within_bounds)
     results['key']['stdev'] = np.std(key_within_bounds)
+    key_scores = assign_score_to_offset(key_within_bounds)
+
+    # plot data
+    fig = plt.figure(figsize=(12,8))
+    [drop_start_axis, drop_end_axis, key_axis] = fig.subplots(3)
+    drop_start_axis.scatter(drop_start_diff, drop_start_scores)
+    drop_end_axis.scatter(drop_end_diff, drop_end_scores)
+    key_axis.scatter(key_within_bounds, key_scores)
+    fig.show()
+    plt.show()
 
     return results
