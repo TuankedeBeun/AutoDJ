@@ -1,4 +1,7 @@
 **/__pycache__
+
+**/localtest.py
+
 analysis/songtester/data
 analysis/songtester/layout.pptx
 analysis/analyser/data
